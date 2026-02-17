@@ -5,6 +5,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/5"/>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="lib" path="lib/javassist-3.21.0-GA.jar"/>
 	<classpathentry kind="lib" path="lib/reflections-0.9.12.jar"/>
