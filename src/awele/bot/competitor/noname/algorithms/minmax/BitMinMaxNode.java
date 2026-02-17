@@ -5,7 +5,7 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
 import awele.bot.competitor.noname.algorithms.heuristics.MoveEvaluator;
-import awele.bot.competitor.noname.algorithms.killers.KillerMoveTable;
+import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
@@ -61,6 +61,8 @@ public abstract class BitMinMaxNode
 	 * Indique si la recherche a été interrompue
 	 */
 	private boolean interrupted;
+	
+	public static TranspositionTable transpositionTable = new TranspositionTable();
 	
 	/**
 	 * Constructeur
@@ -161,13 +163,13 @@ public abstract class BitMinMaxNode
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
 				{
 					// On enregistre ce coup comme un killer move pour cette profondeur, car il a causé une coupe alpha-beta
-					KillerMoveTable.store(depth, i);
+					// KillerMoveTable.store(depth, i);
 					break;
 				}
 			}
 		}
 	}
-	
+		
 	public final double getEvaluation()
 	{
 		return this.evaluation;
@@ -254,7 +256,21 @@ public abstract class BitMinMaxNode
 	 */
 	private double evaluatePosition(BitBoard board)
 	{
-		return board.getScore(player) - board.getScore(1 - player);
+		//return board.getScore(player) - board.getScore(1 - player);
+		
+	    double eval = (board.getScore(player) - board.getScore(1-player)) * 10.0;
+	    
+	    for (int i = 0; i < 6; i++) {
+	        int my = board.getSeeds(player, i);
+	        int opp = board.getSeeds(1-player, i);
+	        
+	        if (my > 0 && my < 3) eval -= 5.0;      // Trous vulnérables
+	        if (opp > 0 && opp < 3) eval += 5.0;
+	        if (my >= 12) eval += 6.0;              // Concentrations
+	        if (opp >= 12) eval -= 6.0;
+	    }
+	    
+	    return eval;
 	}
 	
 	// ===== Méthodes abstraites =====

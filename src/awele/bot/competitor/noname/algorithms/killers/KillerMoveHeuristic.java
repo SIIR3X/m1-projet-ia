@@ -10,7 +10,7 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
  */
 public class KillerMoveHeuristic implements MoveHeuristic
 {
-	private static final int WEIGHT = 1;
+	private static final int WEIGHT = 100;
 	
 	private final int depth;
 	
