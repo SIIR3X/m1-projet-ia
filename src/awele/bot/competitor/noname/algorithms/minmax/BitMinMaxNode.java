@@ -27,6 +27,21 @@ public abstract class BitMinMaxNode
 	 * Profondeur maximale pour la recherche MinMax
 	 */
 	protected static int maxDepth;
+	
+	/**
+	 * Timestamp de début de la recherche
+	 */
+	protected static long searchStartTime;
+	
+	/**
+	 * Durée maximale autorisée pour la recherche
+	 */
+	protected static long maxSearchTime;
+	
+	/*
+	 * Flag indiquant si le temps est écoulé
+	 */
+	protected static volatile boolean timeExpired;
 
 	// ===== Variables d'instance =====
 	
@@ -39,6 +54,11 @@ public abstract class BitMinMaxNode
 	 * Tableau de décisions pour chaque trou possible (indexé de 0 à 5)
 	 */
 	private final double[] decision;
+	
+	/**
+	 * Indique si la recherche a été interrompue
+	 */
+	private boolean interrupted;
 	
 	/**
 	 * Constructeur
@@ -55,6 +75,16 @@ public abstract class BitMinMaxNode
 		// Initialisation de l'évaluation au pire score possible
 		this.evaluation = getWorstScore();
 		
+		// Flag d'interruption
+		this.interrupted = false;
+		
+		// Si la profondeur maximale est atteinte ou si le temps de recherche est écoulé, on évalue la position actuelle
+		if (depth > 0 && isTimeExpired())
+		{
+			this.evaluation = evaluatePosition(board);
+			return;
+		}
+		
 		// On récupère le joueur courant et les coups valides
 		final int currentPlayer = board.getCurrentPlayer();
 		final boolean[] validMoves = board.getValidMoves(currentPlayer);
@@ -67,6 +97,14 @@ public abstract class BitMinMaxNode
 		// On parcours tous les coups possibles
 		for (int i = 0; i < NB_HOLES; i++)
 		{
+			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2 ou moins), 
+			// on interrompt la recherche pour éviter de dépasser le temps imparti
+			if (depth <= 2 && isTimeExpired())
+			{
+				this.interrupted = true;
+				break;
+			}
+			
 			// Si le coup n'est pas jouable, on passe au suivant
 			if (!validMoves[i])
 				continue;
@@ -91,7 +129,15 @@ public abstract class BitMinMaxNode
 			{
 				// Profondeur non atteinte : exploration recursive
 				final BitMinMaxNode child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
-				moveEvaluation = child.evaluation;
+				
+				// Si la recherche a été interrompue dans le noeud fils, on propage l'interruption vers le haut pour arrêter toute la recherche
+				if (child.interrupted)
+				{
+					this.interrupted = true;
+					break;
+				}
+				
+				moveEvaluation = child.getEvaluation();
 			}
 			else
 				// Profondeur maximale atteinte : évaluation de la position
@@ -126,6 +172,11 @@ public abstract class BitMinMaxNode
 		return this.decision;
 	}
 	
+	public final boolean isInterrupted()
+	{
+		return this.interrupted;
+	}
+	
 	// ===== Méthodes statiques =====
 	
 	/**
@@ -135,8 +186,57 @@ public abstract class BitMinMaxNode
 	 */
 	public static void initialize(BitBoard board, int depth)
 	{
-		maxDepth = depth;
-		player = board.getCurrentPlayer();
+		BitMinMaxNode.maxDepth = depth;
+		BitMinMaxNode.player = board.getCurrentPlayer();
+	}
+	
+	/**
+	 * Initialisation du timer pour la recherche MinMax
+	 * @param maxTimeMs Le temps maximum autorisé pour la recherche en millisecondes
+	 */
+	public static void startTimer(long maxTimeMs)
+	{
+		BitMinMaxNode.searchStartTime = System.nanoTime();
+		BitMinMaxNode.maxSearchTime = maxTimeMs * 1_000_000L;
+		BitMinMaxNode.timeExpired = false;
+	}
+	
+	/**
+	 * Reset le timer
+	 */
+	public static void resetTimer()
+	{
+		BitMinMaxNode.searchStartTime = 0;
+		BitMinMaxNode.maxSearchTime = Long.MAX_VALUE;
+		BitMinMaxNode.timeExpired = false;
+	}
+	
+	/**
+	 * Vérifie si le temps de recherche est écoulé
+	 * @return Un booléen qui indique si le temps de recherche est écoulé
+	 */
+	public static boolean isTimeExpired()
+	{
+		if (timeExpired)
+			return true;
+		
+		final long elapsedTime = System.nanoTime() - searchStartTime;
+		if (elapsedTime >= maxSearchTime)
+		{
+			timeExpired = true;
+			return true;
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Retourne le temps écoulé depuis le début de la recherche en millisecondes
+	 * @return Le temps écoulé depuis le début de la recherche en millisecondes
+	 */
+	public static long getElapsedTimeMs()
+	{
+		return (System.nanoTime() - searchStartTime) / 1_000_000L;
 	}
 	
 	// ===== Méthodes d'évaluation =====
