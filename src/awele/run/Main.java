@@ -36,7 +36,7 @@ public final class Main extends OutputWriter
     private static final Tournament TOURNAMENT = Tournament.ALL;
     //private static final Tournament TOURNAMENT = Tournament.COMPETITORS;
     //private static final Tournament TOURNAMENT = Tournament.CHAMPIONS;
-    private static final int NB_RUNS = 100;
+    private static final int NB_RUNS = 10;
     //private static final int NB_RUNS = 1;
     private static final int MAX_LEARNING_TIME = 1000 * 60 * 60 * 1; // 1 h
     private static final int MAX_DECISION_TIME = 100; // 100 ms
@@ -155,6 +155,19 @@ public final class Main extends OutputWriter
         for (Class <? extends Bot> botClass: subClasses)
         	this.print (botClass);
         this.print ();
+        
+        Set<String> allowedBots = Set.of(
+        		//"awele.bot.demo.knn1.Knn1Bot",
+        	    //"awele.bot.demo.minmax.MinMaxBot",
+        	    //"awele.bot.competitor.noname.minmax.NoNameBot"
+        	    //"awele.bot.competitor.noname.alpha.BitMinMaxAlphaBetaBot",
+        	    //"awele.bot.competitor.noname.ordering.BitMinMaxMoveOrderingBot",
+        	    "awele.bot.competitor.semencesupreme.SemenceSupremeBits",
+        	    //"awele.bot.competitor.noname.negamax.BitNegamaxOrderingBot"
+        	    "awele.bot.competitor.noname.NoNameBot"
+        	);
+
+        	subClasses.removeIf(c -> !allowedBots.contains(c.getName()));
         
         this.bots = new ArrayList <Bot> ();
         int index = 0;
