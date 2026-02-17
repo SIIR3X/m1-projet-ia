@@ -38,11 +38,6 @@ public final class BitConstants
 	 */
 	public static final int MIN_SEEDS_TO_CONTINUE = 6;
 	
-	/**
-	 * Seuil de graines dans les trous d'origine pour décider de sauter l'origine lors de la distribution
-	 */
-	public static final int SKIP_ORIGIN_THRESHOLD = 12;
-	
 	// ===== Offsets des bits =====
 	
 	/**

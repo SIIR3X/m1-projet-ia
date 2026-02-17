@@ -13,7 +13,7 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 10;
+	private static final int MAX_DEPTH = 6;
 	
 	public NoNameBot() throws InvalidBotException
 	{
