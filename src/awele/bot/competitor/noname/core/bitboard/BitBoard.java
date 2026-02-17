@@ -84,7 +84,7 @@ public final class BitBoard
 	 * @param hole L'identifiant du trou (0 à 5)
 	 * @return Le nombre de graines dans le trou spécifié
 	 */
-	private int getSeeds(int player, int hole)
+	public int getSeeds(int player, int hole)
 	{
 		int offset = HOLES_OFFSET + (hole * BITS_PER_HOLE);
 		
