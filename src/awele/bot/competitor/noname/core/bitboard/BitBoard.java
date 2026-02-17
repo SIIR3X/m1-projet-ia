@@ -12,7 +12,6 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.MIN_SEEDS_T
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_MOVES_OFFSET;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.OWNER_OFFSET;
-import static awele.bot.competitor.noname.core.bitboard.BitConstants.SKIP_ORIGIN_THRESHOLD;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.VALID_MOVES_OFFSET;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
@@ -337,8 +336,7 @@ public final class BitBoard
 		
 		int currentHole = hole;
 		int currentPlayer = player;
-		boolean skipOrigin = (seeds >= SKIP_ORIGIN_THRESHOLD);
-		
+
 		while (seeds > 0)
 		{
 			currentHole++;
@@ -349,7 +347,7 @@ public final class BitBoard
 				currentHole = 0;
 			}
 			
-			if (skipOrigin && currentPlayer == player && currentHole == hole)
+			if (currentPlayer == player && currentHole == hole)
 				continue;
 			
 			addSeeds(currentPlayer, currentHole, 1);
