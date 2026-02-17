@@ -142,7 +142,7 @@ public final class BitBoard
 	 * @param player L'identifiant du joueur (0 ou 1)
 	 * @return Le nombre total de graines dans les trous du joueur spécifié
 	 */
-	private int getTotalSeeds(int player)
+	public int getTotalSeeds(int player)
 	{
 		int total = 0;
 		
