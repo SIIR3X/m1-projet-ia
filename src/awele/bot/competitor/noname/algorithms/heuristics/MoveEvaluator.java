@@ -3,7 +3,6 @@ package awele.bot.competitor.noname.algorithms.heuristics;
 import java.util.ArrayList;
 import java.util.List;
 
-import awele.bot.competitor.noname.algorithms.killers.KillerMoveHeuristic;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
@@ -25,7 +24,7 @@ public final class MoveEvaluator
 		// Enregistrement des heuristiques utilisées pour évaluer les coups
 		this.heuristics.add(new AntiStarvationHeuristic());
 		this.heuristics.add(new CaptureHeuristic());
-		this.heuristics.add(new KillerMoveHeuristic(depth));
+		//this.heuristics.add(new KillerMoveHeuristic(depth));
 	}
 	
 	/**

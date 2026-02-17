@@ -1,7 +1,6 @@
 package awele.bot.competitor.noname;
 
 import awele.bot.CompetitorBot;
-import awele.bot.competitor.noname.algorithms.killers.KillerMoveTable;
 import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
@@ -21,12 +20,12 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 30;
+	private static final int MAX_DEPTH = 16;
 	
 	/**
 	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
 	 */
-	private static final int MIN_DEPTH = 10;
+	private static final int MIN_DEPTH = 8;
 	
 	// ===== Variables d'instance =====
 	
@@ -68,7 +67,7 @@ public final class NoNameBot extends CompetitorBot
 		final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
 		
 		// On reset la table des killers moves pour cette nouvelle recherche
-		KillerMoveTable.reset();
+		//KillerMoveTable.reset();
 
 		// On lance le timer
 		BitMinMaxNode.startTimer(MAX_TIME_MS);

@@ -11,7 +11,7 @@ public final class KillerMoveTable
 	/**
 	 * Profondeur maximale pour laquelle on stocke des coups killers
 	 */
-	private static final int MAX_DEPTH = 20;
+	private static final int MAX_DEPTH = 14;
 	
 	/**
 	 * Nombre de coups killers stockés par profondeur
@@ -26,8 +26,8 @@ public final class KillerMoveTable
 	private static final int[][] killerMoves = new int[MAX_DEPTH][KILLERS_PER_DEPTH];
 	
 	// Bonus d'évaluation pour les coups killers
-	private static final int FIRST_KILLER_BONUS = 500;
-	private static final int SECOND_KILLER_BONUS = 250;
+	private static final int FIRST_KILLER_BONUS = 10000;
+	private static final int SECOND_KILLER_BONUS = 25000;
 	
 	// Empêche l'instanciation
 	private KillerMoveTable()
@@ -64,7 +64,7 @@ public final class KillerMoveTable
 			return;
 		
 		// Si jamais c'est le 2ème killer move, on le remonte en 1er
-		if (killerMoves[depth][0] == move)
+		if (killerMoves[depth][1] == move)
 		{
 			killerMoves[depth][1] = killerMoves[depth][0];
 			killerMoves[depth][0] = move;
