@@ -4,6 +4,8 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.MIN_SEEDS_T
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
+import awele.bot.competitor.noname.algorithms.heuristics.MoveEvaluator;
+import awele.bot.competitor.noname.algorithms.killers.KillerMoveTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
@@ -71,32 +73,36 @@ public abstract class BitMinMaxNode
 	{
 		// Initialisation du tableau des décisions
 		this.decision = new double[NB_HOLES];
-		
-		// Initialisation de l'évaluation au pire score possible
-		this.evaluation = getWorstScore();
-		
+
 		// Flag d'interruption
 		this.interrupted = false;
 		
-		// Si la profondeur maximale est atteinte ou si le temps de recherche est écoulé, on évalue la position actuelle
+		this.evaluation = getWorstScore();
+
 		if (depth > 0 && isTimeExpired())
 		{
-			this.evaluation = evaluatePosition(board);
+			//this.evaluation = evaluatePosition(board);
+			this.interrupted = true;
 			return;
 		}
-		
-		// On récupère le joueur courant et les coups valides
+
 		final int currentPlayer = board.getCurrentPlayer();
-		final boolean[] validMoves = board.getValidMoves(currentPlayer);
 		
+		// On utilise le MoveEvaluator pour ordonner les coups par qualité
+		// avant de les explrer
+		final MoveEvaluator moveEvaluator = new MoveEvaluator(depth);
+		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer);
+
 		// Variables locales pour éviter les accès répétés aux champs
 		double currentAlpha = alpha;
 		double currentBeta = beta;
 		final boolean isRootNode = (depth == 0);
-		
-		// On parcours tous les coups possibles
-		for (int i = 0; i < NB_HOLES; i++)
+
+		// On parcours les coups ordonnés pour explorer les branches les plus prometteuses en premier
+		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++)
 		{
+			final int i = orderedMoves[moveIndex];
+			
 			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2 ou moins), 
 			// on interrompt la recherche pour éviter de dépasser le temps imparti
 			if (depth <= 2 && isTimeExpired())
@@ -104,10 +110,6 @@ public abstract class BitMinMaxNode
 				this.interrupted = true;
 				break;
 			}
-			
-			// Si le coup n'est pas jouable, on passe au suivant
-			if (!validMoves[i])
-				continue;
 			
 			final double[] decisionArray = new double[NB_HOLES];
 			decisionArray[i] = 1.0;
@@ -157,7 +159,11 @@ public abstract class BitMinMaxNode
 				
 				// Vérification de la condition de coupe
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
+				{
+					// On enregistre ce coup comme un killer move pour cette profondeur, car il a causé une coupe alpha-beta
+					KillerMoveTable.store(depth, i);
 					break;
+				}
 			}
 		}
 	}
