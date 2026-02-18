@@ -5,6 +5,8 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
 import awele.bot.competitor.noname.algorithms.heuristics.MoveEvaluator;
+import awele.bot.competitor.noname.algorithms.transposition.EntryType;
+import awele.bot.competitor.noname.algorithms.transposition.TranspositionEntry;
 import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
@@ -45,6 +47,11 @@ public abstract class BitMinMaxNode
 	 */
 	protected static volatile boolean timeExpired;
 
+	/**
+	 * Table de transposition partagée pour stocker les évaluations des positions déjà explorées
+	 */
+	public static TranspositionTable transpositionTable = new TranspositionTable();
+	
 	// ===== Variables d'instance =====
 	
 	/**
@@ -62,8 +69,6 @@ public abstract class BitMinMaxNode
 	 */
 	private boolean interrupted;
 	
-	public static TranspositionTable transpositionTable = new TranspositionTable();
-	
 	/**
 	 * Constructeur
 	 * @param board L'état de la grille de jeu
@@ -73,19 +78,56 @@ public abstract class BitMinMaxNode
 	 */
 	public BitMinMaxNode(BitBoard board, int depth, double alpha, double beta)
 	{
-		// Initialisation du tableau des décisions
 		this.decision = new double[NB_HOLES];
-
-		// Flag d'interruption
 		this.interrupted = false;
-		
 		this.evaluation = getWorstScore();
 
 		if (depth > 0 && isTimeExpired())
 		{
-			//this.evaluation = evaluatePosition(board);
 			this.interrupted = true;
 			return;
+		}
+		
+		// Ici on garde la fenêtre originale pour déterminer le flag TT en sortie
+		final double alpha0 = alpha;
+		final double beta0 = beta;
+		
+		// Profondeur restante
+		final int depthRemaining = Math.max(0, maxDepth - depth);
+		
+		final long key = board.ttKey();
+		final TranspositionEntry tt = transpositionTable.probe(key);
+		
+		if (tt != null && tt.depth >= depthRemaining)
+		{
+			switch (tt.type)
+			{
+			case EXACT:
+				// Hors racine : retour immédiat
+				if (depth > 0)
+				{
+					this.evaluation = tt.evaluation;
+					return;
+				}
+				break;
+				
+			case LOWER_BOUND:
+				alpha = Math.max(beta, tt.evaluation);
+				break;
+				
+			case UPPER_BOUND:
+				beta = Math.min(beta, tt.evaluation);
+				break;
+				
+			default:
+				break;
+			}
+			
+			if (alpha >= beta && depth > 0)
+			{
+				this.evaluation = tt.evaluation;
+				return;
+			}
 		}
 
 		final int currentPlayer = board.getCurrentPlayer();
@@ -94,11 +136,30 @@ public abstract class BitMinMaxNode
 		// avant de les explrer
 		final MoveEvaluator moveEvaluator = new MoveEvaluator(depth);
 		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer);
+		
+		// TT bestMove en tête si présent
+		if (tt != null)
+		{
+			final int hinted = tt.bestMove;
+			
+			if (hinted >= 0 && hinted < NB_HOLES)
+			{
+				for (int k = 0; k < orderedMoves.length; k++)
+				{
+					if (orderedMoves[k] == hinted)
+					{
+						orderedMoves[k] = orderedMoves[0];
+						orderedMoves[0] = hinted;
+						break;
+					}
+				}
+			}
+		}
 
-		// Variables locales pour éviter les accès répétés aux champs
 		double currentAlpha = alpha;
 		double currentBeta = beta;
 		final boolean isRootNode = (depth == 0);
+		int bestMove = -1;
 
 		// On parcours les coups ordonnés pour explorer les branches les plus prometteuses en premier
 		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++)
@@ -146,13 +207,16 @@ public abstract class BitMinMaxNode
 			else
 				// Profondeur maximale atteinte : évaluation de la position
 				moveEvaluation = evaluatePosition(copy);
-			
-			// On stocke l'évaluation du coup
+
 			this.decision[i] = moveEvaluation;
 			
-			// On met à jour l'évaluation du noeud selon min/max
-			this.evaluation = updateEvaluation(moveEvaluation, this.evaluation);
-			
+			final double newEval = updateEvaluation(moveEvaluation, this.evaluation);
+			if (Double.compare(newEval, this.evaluation) != 0)
+			{
+				this.evaluation = newEval;
+				bestMove = i;
+			}
+
 			// Élagage Alpha-Beta
 			if (!isRootNode)
 			{
@@ -161,12 +225,22 @@ public abstract class BitMinMaxNode
 				
 				// Vérification de la condition de coupe
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
-				{
-					// On enregistre ce coup comme un killer move pour cette profondeur, car il a causé une coupe alpha-beta
-					// KillerMoveTable.store(depth, i);
 					break;
-				}
 			}
+		}
+		
+		if (!this.interrupted)
+		{
+			final EntryType type;
+			
+			if (this.evaluation <= alpha0)
+				type = EntryType.UPPER_BOUND;
+			else if (this.evaluation >= beta0)
+				type = EntryType.LOWER_BOUND;
+			else
+				type = EntryType.EXACT;
+			
+			transpositionTable.store(key, this.evaluation, depthRemaining, type, bestMove);
 		}
 	}
 		

@@ -15,17 +15,17 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Temps maximum autorisé pour la recherche de décision
 	 */
-	private static final long MAX_TIME_MS = 99;
+	private static final long MAX_TIME_MS = 98;
 	
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 16;
+	private static final int MAX_DEPTH = 44;
 	
 	/**
 	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
 	 */
-	private static final int MIN_DEPTH = 8;
+	private static final int MIN_DEPTH = 6;
 	
 	// ===== Variables d'instance =====
 	
@@ -46,6 +46,8 @@ public final class NoNameBot extends CompetitorBot
 	{
 		this.lastDepthReached = 0;
 		this.lastSearchTime = 0;
+		
+		BitMinMaxNode.transpositionTable.clear();
 	}
 	
 	@Override
@@ -57,7 +59,7 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void finish()
 	{
-		
+		System.out.println(lastDepthReached);
 	}
 
 	@Override
@@ -66,8 +68,7 @@ public final class NoNameBot extends CompetitorBot
 		// On convertit le Board classique en BitBoard pour utiliser nos algorithmes optimisés
 		final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
 		
-		// On reset la table des killers moves pour cette nouvelle recherche
-		//KillerMoveTable.reset();
+		BitMinMaxNode.transpositionTable.incrementAge();
 
 		// On lance le timer
 		BitMinMaxNode.startTimer(MAX_TIME_MS);
