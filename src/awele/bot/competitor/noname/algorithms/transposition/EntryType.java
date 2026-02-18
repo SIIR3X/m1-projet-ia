@@ -2,22 +2,22 @@ package awele.bot.competitor.noname.algorithms.transposition;
 
 /**
  * @author Lucas Fagioli
- * Type d'entrée dans la table de transposition
+ * Type d'entrée TT pour AlphaBeta
  */
 public enum EntryType
 {
 	/**
-	 * Évaluation exacte : tous les coups ont été exploré complètement
+	 * Exact : l'évaluation est exacte, c'est à dire que la valeur retournée par la recherche est exactement égale à l'évaluation stockée dans la table de transposition
 	 */
 	EXACT,
 	
 	/**
-	 * Borne inférieure : une coupe beta s'est produite
+	 * Lower bound : l'évaluation est une borne inférieure, c'est à dire que la valeur retournée par la recherche est supérieure ou égale à l'évaluation stock
 	 */
 	LOWER_BOUND,
 	
 	/**
-	 * Borne supérieure : une coupe alpha s'est produite
+	 * Upper bound : l'évaluation est une borne supérieure, c'est à dire que la valeur retournée par la recherche est inférieure ou égale à l'évaluation stock
 	 */
 	UPPER_BOUND
 }
