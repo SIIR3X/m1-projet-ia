@@ -612,6 +612,42 @@ public final class BitBoard
 		this.boards = boards.clone();
 	}
 	
+	// ===== Table de transposition =====
+	
+	public long raw0()
+	{
+		return this.boards[0];
+	}
+	
+	public long raw1()
+	{
+		return this.boards[1];
+	}
+	
+	/**
+	 * Génère une clé de table de transposition à partir des longs internes du plateau
+	 * @return Une clé de table de transposition générée à partir des longs internes du plateau, qui peut être utilisée pour stocker et récupérer des entrées dans une table de transposition
+	 */
+	public long ttKey()
+	{
+		long a = mix64(this.boards[0]);
+		long b = mix64(this.boards[1]);
+		return a ^ Long.rotateLeft(b, 1);
+	}
+	
+	/**
+	 * Mélange les bits d'un long pour obtenir une clé de table de transposition plus uniforme
+	 * @param z Le long à mélanger
+	 * @return Un long mélangé, qui peut être utilisé comme clé de table de transposition
+	 */
+	private static long mix64(long z)
+	{
+		z += 0x9E3779B97F4A7C15L;
+		z = (z ^ (z >>> 30)) * 0xBF58476D1CE4E5B9L;
+		z = (z ^ (z >>> 27)) * 0x94D049BB133111EBL;
+		return z ^ (z >>> 31);
+	}
+	
 	// ===== Affichage =====
 	
 	@Override
