@@ -15,19 +15,7 @@ public interface PositionHeuristic
 	 * @return une évaluation de la position pour le joueur donné, plus élevée est meilleure pour le joueur
 	 */
 	double evaluate(BitBoard board, int player);
-	
-	/**
-	 * Retourne le poids de cette heuristique
-	 * @return Le poids
-	 */
-	double getWeight();
-	
-	/**
-	 * Modifie le poids de cette heuristique
-	 * @param weight Le nouveau poids
-	 */
-	void setWeight(double weight);
-	
+
 	/**
 	 * Identifiant unique pour sérialisation des poids
 	 * @return L'identifiant de cette heuristique

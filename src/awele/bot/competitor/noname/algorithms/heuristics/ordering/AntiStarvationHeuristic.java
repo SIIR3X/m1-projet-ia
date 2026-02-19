@@ -11,7 +11,6 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
  */
 public final class AntiStarvationHeuristic implements MoveHeuristic
 {
-	private static final int WEIGHT = 1;
 	private static final int FEEDS_BONUS = 10_000;
 	private static final int STARVES_PENALTY = -100_000;
 
@@ -33,11 +32,5 @@ public final class AntiStarvationHeuristic implements MoveHeuristic
 			return FEEDS_BONUS;
 		else
 			return STARVES_PENALTY;
-	}
-	
-	@Override
-	public int getWeight()
-	{
-		return WEIGHT;
 	}
 }

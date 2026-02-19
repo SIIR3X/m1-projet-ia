@@ -16,10 +16,4 @@ public interface MoveHeuristic
 	 * @return Une évaluation numérique de la qualité du coup (plus c'est élevé, mieux c'est pour le joueur)
 	 */
 	int evaluate(BitBoard board, int player, int hole);
-	
-	/**
-	 * Retourne le poids de cette heuristique, utilisé pour pondérer son influence dans une évaluation globale
-	 * @return Le poids
-	 */
-	int getWeight();
 }

@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.training;
+package awele.bot.competitor.noname.test;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -46,10 +46,14 @@ public final class TrainingLogger implements AutoCloseable
         "iteration,phase,elapsed_ms,ak,ck,score_plus,score_minus,score_diff,window_avg,best_score";
 
     private static final String HEADER_WEIGHTS =
-        "iteration,phase,w_score,w_krou,w_dangerous,w_empty,w_sequence";
+    	    "iteration,phase," +
+    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_sequence_early," +
+    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_sequence_late";
 
     private static final String HEADER_BEST =
-        "iteration,phase,elapsed_ms,best_score,w_score,w_krou,w_dangerous,w_empty,w_sequence";
+    	    "iteration,phase,elapsed_ms,best_score," +
+    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_sequence_early," +
+    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_sequence_late";
 
     private static final String HEADER_SUMMARY =
         "phase,nb_iterations,duration_ms,initial_score,final_score,best_score";
