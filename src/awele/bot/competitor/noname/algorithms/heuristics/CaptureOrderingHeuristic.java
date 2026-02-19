@@ -4,10 +4,8 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
  * @autor Lucas Fagioli
- * Heuristique basée sur le potentiel de capture
- * Simule rapidement le coup pour compter les graines capturées
  */
-public final class CaptureHeuristic implements MoveHeuristic
+public final class CaptureOrderingHeuristic implements MoveHeuristic
 {
 	private static final int WEIGHT = 100;
 	
@@ -16,7 +14,7 @@ public final class CaptureHeuristic implements MoveHeuristic
 	{
 		final int captured = board.simulateMoveScore(player, hole);
 		
-		return (captured > 0) ? captured : 0;
+		return (captured > 0) ? captured: 0;
 	}
 	
 	@Override

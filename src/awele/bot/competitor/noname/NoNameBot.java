@@ -20,32 +20,29 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 44;
+	private static final int MAX_DEPTH = 36;
 	
 	/**
 	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
 	 */
-	private static final int MIN_DEPTH = 6;
+	private static final int MIN_DEPTH = 0;
 	
 	// ===== Variables d'instance =====
 	
 	private int lastDepthReached;
-	private long lastSearchTime;
-	
+
 	public NoNameBot() throws InvalidBotException
 	{
 		this.setBotName("NoName");
 		this.addAuthor("Lucas Fagioli");
 		
 		this.lastDepthReached = 0;
-		this.lastSearchTime = 0;
 	}
 
 	@Override
 	public void initialize()
 	{
 		this.lastDepthReached = 0;
-		this.lastSearchTime = 0;
 		
 		BitMinMaxNode.transpositionTable.clear();
 	}
@@ -60,14 +57,26 @@ public final class NoNameBot extends CompetitorBot
 	public void finish()
 	{
 		System.out.println(lastDepthReached);
+		System.out.println("VIsite : " + BitMinMaxNode.nodeCount);
 	}
 
 	@Override
 	public double[] getDecision(Board board)
 	{
+		BitMinMaxNode.nodeCount = 0;
+		
 		// On convertit le Board classique en BitBoard pour utiliser nos algorithmes optimisés
 		final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
-		
+
+		// Si c'est le premier coup, on joue a droite (très bon coup d'ouverture) sans faire de recherche pour économiser du temps
+		if (bitBoard.isFirstMove())
+		{
+			this.lastDepthReached = 0;
+			double[] opening = new double[6];
+			opening[5] = 1.0;
+			return opening;
+		}
+			
 		BitMinMaxNode.transpositionTable.incrementAge();
 
 		// On lance le timer
@@ -111,8 +120,7 @@ public final class NoNameBot extends CompetitorBot
 		}
 		
 		this.lastDepthReached = depthReached;
-		this.lastSearchTime = BitMinMaxNode.getElapsedTimeMs();
-		
+
 		// On reset le timer
 		BitMinMaxNode.resetTimer();
 		
@@ -125,5 +133,10 @@ public final class NoNameBot extends CompetitorBot
 		}
 
 		return bestDecision;
+	}
+	
+	public int getLastDepthReached()
+	{
+	    return this.lastDepthReached;
 	}
 }

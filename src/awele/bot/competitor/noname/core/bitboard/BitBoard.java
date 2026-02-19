@@ -567,6 +567,16 @@ public final class BitBoard
 	}
 	
 	/**
+	 * Vérifie si le joueur actuel est sur son premier coup
+	 * @return true si le joueur actuel est sur son premier coup, false sinon
+	 */
+	public boolean isFirstMove()
+	{
+		int player = getCurrentPlayer();
+		return ((this.boards[player] >> FIRST_MOVE_OFFSET) & MASK_1_BIT) == 1L;
+	}
+	
+	/**
 	 * Détermine le gagnant de la partie
 	 * @return L'identifiant du joueur gagnant (0 ou 1), ou -1 en cas d'égalité
 	 */
