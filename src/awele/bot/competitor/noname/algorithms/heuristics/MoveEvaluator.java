@@ -16,15 +16,15 @@ public final class MoveEvaluator
 	 * Liste des heuristiques utilisées pour évaluer les coups
 	 */
 	private final List<MoveHeuristic> heuristics;
-	
-	public MoveEvaluator(int depth)
+
+	public MoveEvaluator(int ttBestMove)
 	{
 		this.heuristics = new ArrayList<>();
 		
 		// Enregistrement des heuristiques utilisées pour évaluer les coups
+		this.heuristics.add(new TTMoveHeuristic(ttBestMove));
 		this.heuristics.add(new AntiStarvationHeuristic());
-		this.heuristics.add(new CaptureHeuristic());
-		//this.heuristics.add(new KillerMoveHeuristic(depth));
+		this.heuristics.add(new CaptureOrderingHeuristic());
 	}
 	
 	/**
@@ -44,7 +44,7 @@ public final class MoveEvaluator
 			int score = heuristic.evaluate(board, player, hole);
 			totalScore += score * heuristic.getWeight();
 		}
-		
+
 		return totalScore;
 	}
 	
