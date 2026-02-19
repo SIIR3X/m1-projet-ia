@@ -4,7 +4,8 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.MIN_SEEDS_T
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
-import awele.bot.competitor.noname.algorithms.heuristics.MoveEvaluator;
+import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.algorithms.heuristics.ordering.MoveEvaluator;
 import awele.bot.competitor.noname.algorithms.transposition.EntryType;
 import awele.bot.competitor.noname.algorithms.transposition.TranspositionEntry;
 import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
@@ -12,63 +13,68 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
  * @author Lucas Fagioli
- * Noeud abstrait pour l'algorithme MinMax utilisant BitBoard
- * 
- * Cette classe implémente la strtucture classique de MinMax avec deux types de nœuds :
- * - MaxNode : cherche à maximiser le score du joueur
- * - MinNode : cherche à minimiser le score (maximiser pour l'adversaire)
+ * Classe abstraite représentant un noeud dans l'arbre de recherche MinMax pour le jeu Awélé.
  */
 public abstract class BitMinMaxNode
 {
 	// ===== Variables statiques =====
-	
+
 	/**
 	 * Numéro de joueur de l'IA (0 ou 1)
 	 */
 	protected static int player;
-	
+
 	/**
 	 * Profondeur maximale pour la recherche MinMax
 	 */
 	protected static int maxDepth;
-	
+
 	/**
 	 * Timestamp de début de la recherche
 	 */
 	protected static long searchStartTime;
-	
+
 	/**
 	 * Durée maximale autorisée pour la recherche
 	 */
 	protected static long maxSearchTime;
-	
+
 	/*
 	 * Flag indiquant si le temps est écoulé
 	 */
 	protected static volatile boolean timeExpired;
 
 	/**
-	 * Table de transposition partagée pour stocker les évaluations des positions déjà explorées
+	 * Table de transposition partagée pour stocker les évaluations des positions
+	 * déjà explorées
 	 */
 	public static TranspositionTable transpositionTable = new TranspositionTable();
 	
-	// ===== Variables d'instance =====
-	
 	/**
-	 * Évaluation du noeud : estimation de la valeur de la position pour le joueur actuel
+	 * Évaluateur de position partagé pour calculer l'évaluation des positions de jeu
+	 */
+	public static PositionEvaluator positionEvaluator = new PositionEvaluator();
+	
+	// ===== Variables d'instance =====
+
+	/**
+	 * Évaluation du noeud : estimation de la valeur de la position pour le joueur
+	 * actuel
 	 */
 	private double evaluation;
-	
+
 	/**
 	 * Tableau de décisions pour chaque trou possible (indexé de 0 à 5)
 	 */
 	private final double[] decision;
-	
+
 	/**
 	 * Indique si la recherche a été interrompue
 	 */
 	private boolean interrupted;
 	
+	public static long nodeCount = 0;
+
 	/**
 	 * Constructeur
 	 * @param board L'état de la grille de jeu
@@ -78,53 +84,50 @@ public abstract class BitMinMaxNode
 	 */
 	public BitMinMaxNode(BitBoard board, int depth, double alpha, double beta)
 	{
+		nodeCount++;
+		
 		this.decision = new double[NB_HOLES];
 		this.interrupted = false;
 		this.evaluation = getWorstScore();
 
-		if (depth > 0 && isTimeExpired())
-		{
+		if (depth > 0 && isTimeExpired()) {
 			this.interrupted = true;
 			return;
 		}
-		
+
 		// Ici on garde la fenêtre originale pour déterminer le flag TT en sortie
 		final double alpha0 = alpha;
 		final double beta0 = beta;
-		
+
 		// Profondeur restante
 		final int depthRemaining = Math.max(0, maxDepth - depth);
-		
+
 		final long key = board.ttKey();
 		final TranspositionEntry tt = transpositionTable.probe(key);
-		
-		if (tt != null && tt.depth >= depthRemaining)
-		{
-			switch (tt.type)
-			{
+
+		if (tt != null && tt.depth >= depthRemaining) {
+			switch (tt.type) {
 			case EXACT:
 				// Hors racine : retour immédiat
-				if (depth > 0)
-				{
+				if (depth > 0) {
 					this.evaluation = tt.evaluation;
 					return;
 				}
 				break;
-				
+
 			case LOWER_BOUND:
-				alpha = Math.max(beta, tt.evaluation);
+				alpha = Math.max(alpha, tt.evaluation);
 				break;
-				
+
 			case UPPER_BOUND:
 				beta = Math.min(beta, tt.evaluation);
 				break;
-				
+
 			default:
 				break;
 			}
-			
-			if (alpha >= beta && depth > 0)
-			{
+
+			if (alpha >= beta && depth > 0) {
 				this.evaluation = tt.evaluation;
 				return;
 			}
@@ -132,135 +135,114 @@ public abstract class BitMinMaxNode
 
 		final int currentPlayer = board.getCurrentPlayer();
 		
+		int ttBestMove = (tt != null && tt.bestMove >= 0 && tt.bestMove < NB_HOLES) ? tt.bestMove : -1;
+
 		// On utilise le MoveEvaluator pour ordonner les coups par qualité
-		// avant de les explrer
-		final MoveEvaluator moveEvaluator = new MoveEvaluator(depth);
+		// avant de les explorer
+		final MoveEvaluator moveEvaluator = new MoveEvaluator(ttBestMove);
 		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer);
-		
-		// TT bestMove en tête si présent
-		if (tt != null)
-		{
-			final int hinted = tt.bestMove;
-			
-			if (hinted >= 0 && hinted < NB_HOLES)
-			{
-				for (int k = 0; k < orderedMoves.length; k++)
-				{
-					if (orderedMoves[k] == hinted)
-					{
-						orderedMoves[k] = orderedMoves[0];
-						orderedMoves[0] = hinted;
-						break;
-					}
-				}
-			}
-		}
 
 		double currentAlpha = alpha;
 		double currentBeta = beta;
 		final boolean isRootNode = (depth == 0);
 		int bestMove = -1;
-
-		// On parcours les coups ordonnés pour explorer les branches les plus prometteuses en premier
-		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++)
-		{
+		
+		// On parcours les coups ordonnés pour explorer les branches les plus
+		// prometteuses en premier
+		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++) {
 			final int i = orderedMoves[moveIndex];
-			
-			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2 ou moins), 
+
+			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2
+			// ou moins),
 			// on interrompt la recherche pour éviter de dépasser le temps imparti
-			if (depth <= 2 && isTimeExpired())
-			{
+			if (depth <= 2 && isTimeExpired()) {
 				this.interrupted = true;
 				break;
 			}
-			
+
 			final double[] decisionArray = new double[NB_HOLES];
 			decisionArray[i] = 1.0;
-			
+
 			final BitBoard copy = board.clone();
 			final int score = copy.playMove(decisionArray);
-			
+
 			// On calcul l'évaluation pour ce coup
 			final double moveEvaluation;
-			
+
 			// On vérifie les conditions de fin de partie
 			final int opponentScore = copy.getScore(1 - copy.getCurrentPlayer());
 			final int totalSeeds = copy.getTotalSeeds(0) + copy.getTotalSeeds(1);
-			
+
 			if (score < 0 || opponentScore >= WINNING_SCORE || totalSeeds <= MIN_SEEDS_TO_CONTINUE)
 				// Fin de partie détectée : évaluation directe
 				moveEvaluation = evaluatePosition(copy);
-			else if (depth < maxDepth)
-			{
+			else if (depth < maxDepth) {
 				// Profondeur non atteinte : exploration recursive
 				final BitMinMaxNode child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
-				
-				// Si la recherche a été interrompue dans le noeud fils, on propage l'interruption vers le haut pour arrêter toute la recherche
-				if (child.interrupted)
-				{
+
+				// Si la recherche a été interrompue dans le noeud fils, on propage
+				// l'interruption vers le haut pour arrêter toute la recherche
+				if (child.interrupted) {
 					this.interrupted = true;
 					break;
 				}
-				
+
 				moveEvaluation = child.getEvaluation();
-			}
-			else
+			} else
 				// Profondeur maximale atteinte : évaluation de la position
 				moveEvaluation = evaluatePosition(copy);
 
 			this.decision[i] = moveEvaluation;
-			
+
 			final double newEval = updateEvaluation(moveEvaluation, this.evaluation);
-			if (Double.compare(newEval, this.evaluation) != 0)
-			{
+			if (Double.compare(newEval, this.evaluation) != 0) {
 				this.evaluation = newEval;
 				bestMove = i;
 			}
 
 			// Élagage Alpha-Beta
-			if (!isRootNode)
-			{
+			if (!isRootNode) {
 				currentAlpha = updateAlpha(this.evaluation, currentAlpha);
 				currentBeta = updateBeta(this.evaluation, currentBeta);
-				
+
 				// Vérification de la condition de coupe
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
 					break;
 			}
 		}
-		
+
 		if (!this.interrupted)
 		{
 			final EntryType type;
-			
+
 			if (this.evaluation <= alpha0)
 				type = EntryType.UPPER_BOUND;
 			else if (this.evaluation >= beta0)
 				type = EntryType.LOWER_BOUND;
 			else
 				type = EntryType.EXACT;
-			
+
 			transpositionTable.store(key, this.evaluation, depthRemaining, type, bestMove);
 		}
 	}
-		
+
 	public final double getEvaluation()
 	{
 		return this.evaluation;
 	}
-	
+
 	public final double[] getDecision()
 	{
 		return this.decision;
 	}
-	
+
 	public final boolean isInterrupted()
 	{
 		return this.interrupted;
 	}
-	
+
 	// ===== Méthodes statiques =====
-	
+
 	/**
 	 * Initialisation des paramètres statiques
 	 * @param board Le plateau de départ
@@ -271,7 +253,7 @@ public abstract class BitMinMaxNode
 		BitMinMaxNode.maxDepth = depth;
 		BitMinMaxNode.player = board.getCurrentPlayer();
 	}
-	
+
 	/**
 	 * Initialisation du timer pour la recherche MinMax
 	 * @param maxTimeMs Le temps maximum autorisé pour la recherche en millisecondes
@@ -282,7 +264,7 @@ public abstract class BitMinMaxNode
 		BitMinMaxNode.maxSearchTime = maxTimeMs * 1_000_000L;
 		BitMinMaxNode.timeExpired = false;
 	}
-	
+
 	/**
 	 * Reset le timer
 	 */
@@ -292,7 +274,7 @@ public abstract class BitMinMaxNode
 		BitMinMaxNode.maxSearchTime = Long.MAX_VALUE;
 		BitMinMaxNode.timeExpired = false;
 	}
-	
+
 	/**
 	 * Vérifie si le temps de recherche est écoulé
 	 * @return Un booléen qui indique si le temps de recherche est écoulé
@@ -301,17 +283,17 @@ public abstract class BitMinMaxNode
 	{
 		if (timeExpired)
 			return true;
-		
+
 		final long elapsedTime = System.nanoTime() - searchStartTime;
 		if (elapsedTime >= maxSearchTime)
 		{
 			timeExpired = true;
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Retourne le temps écoulé depuis le début de la recherche en millisecondes
 	 * @return Le temps écoulé depuis le début de la recherche en millisecondes
@@ -320,9 +302,9 @@ public abstract class BitMinMaxNode
 	{
 		return (System.nanoTime() - searchStartTime) / 1_000_000L;
 	}
-	
+
 	// ===== Méthodes d'évaluation =====
-	
+
 	/**
 	 * Calcule la différence de score du point de vue de l'IA
 	 * @param board L'état du plateau de jeu
@@ -330,31 +312,17 @@ public abstract class BitMinMaxNode
 	 */
 	private double evaluatePosition(BitBoard board)
 	{
-		//return board.getScore(player) - board.getScore(1 - player);
-		
-	    double eval = (board.getScore(player) - board.getScore(1-player)) * 10.0;
-	    
-	    for (int i = 0; i < 6; i++) {
-	        int my = board.getSeeds(player, i);
-	        int opp = board.getSeeds(1-player, i);
-	        
-	        if (my > 0 && my < 3) eval -= 5.0;      // Trous vulnérables
-	        if (opp > 0 && opp < 3) eval += 5.0;
-	        if (my >= 12) eval += 6.0;              // Concentrations
-	        if (opp >= 12) eval -= 6.0;
-	    }
-	    
-	    return eval;
+		return positionEvaluator.evaluate(board, player);
 	}
-	
+
 	// ===== Méthodes abstraites =====
-	
+
 	/**
 	 * Retourne le pire score possible pour ce type de noeud (Min ou Max)
 	 * @return Le pire score possible pour ce type de noeud
 	 */
 	protected abstract double getWorstScore();
-	
+
 	/**
 	 * Met à jour l'évaluation selon le type de noeud (Min ou Max)
 	 * @param newEval L'évaluation à comparer avec l'évaluation courante
@@ -362,7 +330,7 @@ public abstract class BitMinMaxNode
 	 * @return La nouvelle évaluation mise à jour selon le type de noeud
 	 */
 	protected abstract double updateEvaluation(double newEval, double currentEval);
-	
+
 	/**
 	 * Met à jour la valeur d'Alpha
 	 * @param evaluation L'évaluation courante du noeud
@@ -370,7 +338,7 @@ public abstract class BitMinMaxNode
 	 * @return La nouvelle valeur d'Alpha mise à jour selon le type de noeud
 	 */
 	protected abstract double updateAlpha(double evaluation, double alpha);
-	
+
 	/**
 	 * Met à jour la valeur de Beta
 	 * @param evaluation L'évaluation courante du noeud
@@ -378,7 +346,7 @@ public abstract class BitMinMaxNode
 	 * @return La nouvelle valeur de Beta mise à jour selon le type de noeud
 	 */
 	protected abstract double updateBeta(double evaluation, double beta);
-	
+
 	/**
 	 * Indique s'il faut faire une coupe alpha-beta
 	 * @param evaluation L'évaluation courante du noeud
@@ -387,13 +355,13 @@ public abstract class BitMinMaxNode
 	 * @return Un booléen qui indique s'il faut faire une coupe alpha-beta
 	 */
 	protected abstract boolean shouldPrune(double evaluation, double alpha, double beta);
-	
+
 	/**
 	 * Crée un noeud du niveau suivant (Min ou Max selon le type de noeud actuel)
 	 * @param board L'état de la grille de jeu
 	 * @param depth La profondeur du noeud
 	 * @param alpha Le seuil pour la coupe alpha
-	 * @param beta Le seuil pour la coupe beta
+	 * @param beta  Le seuil pour la coupe beta
 	 * @return Un noeud du niveau suivant (Min ou Max selon le type de noeud actuel)
 	 */
 	protected abstract BitMinMaxNode createNextNode(BitBoard board, int depth, double alpha, double beta);

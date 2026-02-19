@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.heuristics;
+package awele.bot.competitor.noname.algorithms.heuristics.ordering;
 
 import java.util.ArrayList;
 import java.util.List;
