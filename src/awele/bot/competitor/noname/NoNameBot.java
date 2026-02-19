@@ -3,6 +3,9 @@ package awele.bot.competitor.noname;
 import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
+import awele.bot.competitor.noname.algorithms.training.BotEvaluator;
+import awele.bot.competitor.noname.algorithms.training.SPSA;
+import awele.bot.competitor.noname.algorithms.training.SPSAConfig;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
 import awele.core.Board;
@@ -20,7 +23,7 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 40;
+	private static final int MAX_DEPTH = 999;
 	
 	/**
 	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
@@ -30,6 +33,18 @@ public final class NoNameBot extends CompetitorBot
 	// ===== Variables d'instance =====
 	
 	private int lastDepthReached;
+	
+	// ===== Constantes d'entraînement =====
+	
+	/**
+	 * Budget total dispobile pour l'apprentissage (en ms)
+	 */
+	private static final long LEARN_BUDGET_MS = 60L * 60L * 1_000L;
+	
+	/**
+	 * Proportion du budget allouée à la phase Joan (Sala)
+	 */
+	private static final double JOAN_SALA_RATIO = 0.75;
 
 	public NoNameBot() throws InvalidBotException
 	{
@@ -50,7 +65,41 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void learn()
 	{
-
+		// PHASE 1 - JOAN SALA
+		final long joanSalaBudgetMs = (long)(LEARN_BUDGET_MS * JOAN_SALA_RATIO);
+		final SPSAConfig configPhase1 = new SPSAConfig(
+			0.602,
+			0.101,
+			0.5,
+			0.2,
+			100.0,
+			2,
+			5,
+			joanSalaBudgetMs,
+			-50.0,
+			50.0
+		);
+		final BotEvaluator botEvaluator = new BotEvaluator();
+		final SPSA spsaPhase1 = new SPSA(configPhase1);
+		spsaPhase1.optimize(BitMinMaxNode.positionEvaluator, botEvaluator);
+		
+		// PHASE 2 - SELF-PLAY
+		final long selfPlayBudgetMs = LEARN_BUDGET_MS - joanSalaBudgetMs;
+		final SPSAConfig configPhase2 = new SPSAConfig(
+			0.602,
+			0.101,
+			0.5,
+			0.2,
+			100.0,
+			2,
+			5,
+			selfPlayBudgetMs,
+			-50.0,
+			50.0
+		);
+		final BotEvaluator selfPlayEvaluator = new BotEvaluator(BotEvaluator.OpponentProfile.SELF_PLAY);
+		final SPSA spsaPhase2 = new SPSA(configPhase2);
+		spsaPhase2.optimize(BitMinMaxNode.positionEvaluator, selfPlayEvaluator);
 	}
 
 	@Override
