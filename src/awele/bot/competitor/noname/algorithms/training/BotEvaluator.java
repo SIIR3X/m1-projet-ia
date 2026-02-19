@@ -1,5 +1,7 @@
 package awele.bot.competitor.noname.algorithms.training;
 
+import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
+
 import java.util.Random;
 
 import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
@@ -7,7 +9,6 @@ import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
-import awele.bot.competitor.noname.core.bitboard.BitConstants;
 
 public final class BotEvaluator
 {
@@ -18,8 +19,20 @@ public final class BotEvaluator
 	 */
 	private final AdaptiveOpponentSelector selector;
 	
+	/**
+	 * Table de transposition du bot candidat
+	 */
 	private final TranspositionTable candidateTT;
+	
+	/**
+	 * Table de transposition de l'adversaire
+	 */
 	private final TranspositionTable opponentTT;
+	
+	/**
+	 * Générateur de nombres aléatoires pour les ouvertures aléatoires
+	 */
+	private final Random random = new Random(0xFFDABB);
 	
 	/**
 	 * Plateau de départ réutilisé
@@ -28,14 +41,15 @@ public final class BotEvaluator
 	
 	// ===== Constantes =====
 	
-	private static final int NB_HOLES = BitConstants.NB_HOLES;
+	/**
+	 * Nombre max de coup à jour dans une partie
+	 */
 	private static final int MAX_MOVES_PER_GAME = 200;
 	
-	
-	private final Random rng = new Random(0xC0FFEE);
-	private static final int RANDOM_OPENING_PLIES = 6; // 4 à 10 typiquement
-	private static final double RANDOM_MOVE_EPS = 1e-9;
-	
+	/**
+	 * Nombre de coups d'ouverture aléatoires à jouer avant de commencer la recherche
+	 */
+	private static final int RANDOM_OPENING_PLIES = 6;
 	
 	public BotEvaluator()
 	{
@@ -70,37 +84,25 @@ public final class BotEvaluator
 		return totalScore / (double)nbGames;
 	}
 	
+	/**
+	 * Sélectionne un profil d'adversaire à utiliser pour l'entraînement, en fonction des poids candidats et des performances passées de chaque profil
+	 * @param candidateWeights Les poids du bot candidat, qui peuvent être utilisés par le sélecteur pour estimer les performances de chaque profil
+	 * @return Le profil d'adversaire sélectionné pour l'entraînement
+	 */
 	public AdaptiveOpponentSelector.OpponentProfile sampleProfile(double[] candidateWeights)
 	{
 		return selector.selectProfile(candidateWeights);
 	}
 	
-	private void playRandomOpening(BitBoard board, int plies)
+	/**
+	 * Met à jour les poids du profil de l'adversaire sélectionné
+	 * @param weights Poids à utiliser pour le profil de l'adversaire sélectionné
+	 */
+	public void updateBestWeights(double[] weights)
 	{
-	    for (int p = 0; p < plies && !board.isGameOver(); p++)
-	    {
-	        int player = board.getCurrentPlayer();
-	        boolean[] valid = board.getValidMoves(player);
-
-	        int count = 0;
-	        for (boolean v : valid) if (v) count++;
-	        if (count == 0) return;
-
-	        int pick = rng.nextInt(count);
-	        int move = -1;
-	        for (int i = 0; i < valid.length; i++)
-	        {
-	            if (!valid[i]) continue;
-	            if (pick-- == 0) { move = i; break; }
-	        }
-
-	        double[] decision = new double[NB_HOLES];
-	        if (move >= 0) decision[move] = 1.0;
-	        board.playMove(decision);
-	    }
+	    selector.updateBestWeights(weights);
 	}
-
-	
+		
 	/**
 	 * Joue une partie complète entre deux évaluateurs
 	 * @param candidateEvaluator Évaluateur de position du bot candidat
@@ -175,6 +177,36 @@ public final class BotEvaluator
 	}
 	
 	/**
+	 * Joue un nombre donné de coups d'ouverture aléatoires
+	 * @param board Plateau de jeu sur lequel jouer les coups d'ouverture
+	 * @param plies Nombre de coups d'ouverture à jouer
+	 */
+	private void playRandomOpening(BitBoard board, int plies)
+	{
+	    for (int p = 0; p < plies && !board.isGameOver(); p++)
+	    {
+	        int player = board.getCurrentPlayer();
+	        boolean[] valid = board.getValidMoves(player);
+
+	        int count = 0;
+	        for (boolean v : valid) if (v) count++;
+	        if (count == 0) return;
+
+	        int pick = random.nextInt(count);
+	        int move = -1;
+	        for (int i = 0; i < valid.length; i++)
+	        {
+	            if (!valid[i]) continue;
+	            if (pick-- == 0) { move = i; break; }
+	        }
+
+	        double[] decision = new double[NB_HOLES];
+	        if (move >= 0) decision[move] = 1.0;
+	        board.playMove(decision);
+	    }
+	}
+	
+	/**
 	 * Calcule le meilleur pour un évaluateur donné et une profondeur donnée
 	 * @param board Plateau pour lequel on doit prendre une décision
 	 * @param evaluator Évaluateur de position à utiliser pour la recherche
@@ -216,10 +248,5 @@ public final class BotEvaluator
 		}
 		
 		return decision;
-	}
-	
-	public void updateBestWeights(double[] weights)
-	{
-	    selector.updateBestWeights(weights);
 	}
 }

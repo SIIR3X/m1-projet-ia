@@ -20,14 +20,7 @@ public final class DangerousHoleHeuristic implements PositionHeuristic
 	private static final int BITS_PER_HOLE = BitConstants.BITS_PER_HOLE;
 	private static final long MASK_6_BITS = BitConstants.MASK_6_BITS;
 	private static final int NB_HOLES = BitConstants.NB_HOLES;
-	
-	private double weight;
-	
-	public DangerousHoleHeuristic(double weight)
-	{
-		this.weight = weight;
-	}
-	
+		
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -45,19 +38,7 @@ public final class DangerousHoleHeuristic implements PositionHeuristic
 		
 		return (double)dangerousCount;
 	}
-	
-	@Override
-	public double getWeight()
-	{
-		return weight;
-	}
-	
-	@Override
-	public void setWeight(double weight)
-	{
-		this.weight = weight;
-	}
-	
+
 	@Override
 	public String getId()
 	{

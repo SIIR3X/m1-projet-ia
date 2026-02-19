@@ -15,13 +15,6 @@ public final class ScoreHeuristic implements PositionHeuristic
 	private static final long MASK = BitConstants.MASK_6_BITS;
 	private static final int OFFSET = BitConstants.SCORE_OFFSET;
 	
-	private double weight;
-	
-	public ScoreHeuristic(double weight)
-	{
-		this.weight = weight;
-	}
-	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -29,18 +22,7 @@ public final class ScoreHeuristic implements PositionHeuristic
 		
 		return (double)((raw >> OFFSET) & MASK);
 	}
-	
-	public double getWeight()
-	{
-		return weight;
-	}
-	
-	@Override
-	public void setWeight(double weight)
-	{
-		this.weight = weight;
-	}
-	
+
 	@Override
 	public String getId()
 	{

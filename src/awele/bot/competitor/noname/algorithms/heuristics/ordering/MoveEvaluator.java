@@ -16,6 +16,15 @@ public final class MoveEvaluator
 	 * Liste des heuristiques utilisées pour évaluer les coups
 	 */
 	private final List<MoveHeuristic> heuristics;
+	
+	/**
+	 * Poids associés à chaque heuristique pour le calcul du score global
+	 */
+	private static final int[] WEIGHTS = {
+		1, // TTMoveHeuristic
+		1, // AntiStarvationHeuristic
+		100 // CaptureOrderingHeuristic
+	};
 
 	public MoveEvaluator(int ttBestMove)
 	{
@@ -39,10 +48,9 @@ public final class MoveEvaluator
 		int totalScore = 0;
 		
 		// On applique chaque heuristique et on additionne les scores pondérés
-		for (MoveHeuristic heuristic : this.heuristics)
+		for (int i = 0; i < heuristics.size(); i++)
 		{
-			int score = heuristic.evaluate(board, player, hole);
-			totalScore += score * heuristic.getWeight();
+			totalScore += heuristics.get(i).evaluate(board, player, hole) * WEIGHTS[i];
 		}
 
 		return totalScore;

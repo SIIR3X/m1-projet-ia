@@ -3,6 +3,7 @@ package awele.bot.competitor.noname.algorithms.training;
 import java.util.Random;
 
 import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.test.TrainingLogger;
 
 /**
  * @author Lucas Fagioli
