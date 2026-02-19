@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.heuristics;
+package awele.bot.competitor.noname.algorithms.heuristics.ordering;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 

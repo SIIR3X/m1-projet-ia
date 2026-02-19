@@ -163,6 +163,7 @@ public final class Main extends OutputWriter
         	    //"awele.bot.competitor.noname.alpha.BitMinMaxAlphaBetaBot",
         	    //"awele.bot.competitor.noname.ordering.BitMinMaxMoveOrderingBot",
         	    "awele.bot.competitor.semencesupreme.SemenceSupremeBits",
+        		//"awele.bot.competitor.semencesupreme.minmaxopt.MinMaxOpt",
         	    //"awele.bot.competitor.noname.negamax.BitNegamaxOrderingBot"
         	    "awele.bot.competitor.noname.NoNameBot"
         	);

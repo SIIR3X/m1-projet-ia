@@ -20,7 +20,7 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Profondeur maximale de recherche
 	 */
-	private static final int MAX_DEPTH = 36;
+	private static final int MAX_DEPTH = 40;
 	
 	/**
 	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
