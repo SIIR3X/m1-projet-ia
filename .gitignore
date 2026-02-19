@@ -3,3 +3,5 @@ awele.log
 .settings
 bin/
 semencesupreme/
+logs/
+*.py
