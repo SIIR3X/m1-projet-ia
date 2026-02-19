@@ -6,6 +6,7 @@ import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.algorithms.training.BotEvaluator;
 import awele.bot.competitor.noname.algorithms.training.SPSA;
 import awele.bot.competitor.noname.algorithms.training.SPSAConfig;
+import awele.bot.competitor.noname.algorithms.training.TrainingLogger;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
 import awele.core.Board;
@@ -39,7 +40,7 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Budget total dispobile pour l'apprentissage (en ms)
 	 */
-	private static final long LEARN_BUDGET_MS = 60L * 60L * 1_000L;
+	private static final long LEARN_BUDGET_MS = 10L * 60L * 1_000L;
 	
 	/**
 	 * Proportion du budget allouée à la phase Joan (Sala)
@@ -65,41 +66,44 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void learn()
 	{
-		// PHASE 1 - JOAN SALA
-		final long joanSalaBudgetMs = (long)(LEARN_BUDGET_MS * JOAN_SALA_RATIO);
-		final SPSAConfig configPhase1 = new SPSAConfig(
-			0.602,
-			0.101,
-			0.5,
-			0.2,
-			100.0,
-			2,
-			5,
-			joanSalaBudgetMs,
-			-50.0,
-			50.0
-		);
-		final BotEvaluator botEvaluator = new BotEvaluator();
-		final SPSA spsaPhase1 = new SPSA(configPhase1);
-		spsaPhase1.optimize(BitMinMaxNode.positionEvaluator, botEvaluator);
-		
-		// PHASE 2 - SELF-PLAY
-		final long selfPlayBudgetMs = LEARN_BUDGET_MS - joanSalaBudgetMs;
-		final SPSAConfig configPhase2 = new SPSAConfig(
-			0.602,
-			0.101,
-			0.5,
-			0.2,
-			100.0,
-			2,
-			5,
-			selfPlayBudgetMs,
-			-50.0,
-			50.0
-		);
-		final BotEvaluator selfPlayEvaluator = new BotEvaluator(BotEvaluator.OpponentProfile.SELF_PLAY);
-		final SPSA spsaPhase2 = new SPSA(configPhase2);
-		spsaPhase2.optimize(BitMinMaxNode.positionEvaluator, selfPlayEvaluator);
+		try (TrainingLogger logger = new TrainingLogger())
+		{
+			// PHASE 1 - JOAN SALA
+			final long joanSalaBudgetMs = (long)(LEARN_BUDGET_MS * JOAN_SALA_RATIO);
+			final SPSAConfig configPhase1 = new SPSAConfig(
+				0.602,
+				0.101,
+				0.5,
+				0.2,
+				100.0,
+				2,
+				5,
+				joanSalaBudgetMs,
+				-50.0,
+				50.0
+			);
+			final BotEvaluator botEvaluator = new BotEvaluator();
+			final SPSA spsaPhase1 = new SPSA(configPhase1);
+			spsaPhase1.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "JOAN_SALA");
+			
+			// PHASE 2 - SELF-PLAY
+			final long selfPlayBudgetMs = LEARN_BUDGET_MS - joanSalaBudgetMs;
+			final SPSAConfig configPhase2 = new SPSAConfig(
+				0.602,
+				0.101,
+				0.5,
+				0.2,
+				100.0,
+				2,
+				5,
+				selfPlayBudgetMs,
+				-50.0,
+				50.0
+			);
+			final BotEvaluator selfPlayEvaluator = new BotEvaluator(BotEvaluator.OpponentProfile.SELF_PLAY);
+			final SPSA spsaPhase2 = new SPSA(configPhase2);
+			spsaPhase2.optimize(BitMinMaxNode.positionEvaluator, selfPlayEvaluator, logger, "SELF_PLAY");	
+		}
 	}
 
 	@Override

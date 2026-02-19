@@ -64,7 +64,11 @@ public final class SPSA
 	 * @param evaluator Évaluateur de position à optimiser
 	 * @param botEvaluator Évaluateur de bot pour estimer les scores pendant l'entraînement
 	 */
-	public void optimize(PositionEvaluator evaluator, BotEvaluator botEvaluator)
+	public void optimize(
+		PositionEvaluator evaluator,
+		BotEvaluator botEvaluator,
+		TrainingLogger logger,
+		String phaseName)
 	{
 		final long startTime = System.currentTimeMillis();
 		final long endTime = startTime + config.timeBudgetMs;
@@ -73,6 +77,9 @@ public final class SPSA
 		this.bestWeights = theta.clone();
 		
 		final int n = theta.length;
+		
+		double initialScore = Double.NEGATIVE_INFINITY;
+		double finalScore = Double.NEGATIVE_INFINITY;
         
         while (System.currentTimeMillis() < endTime)
         {
@@ -105,6 +112,12 @@ public final class SPSA
         		final double currentScore = (scorePlus + scoreMinus) / 2.0;
         		updateWindow(currentScore);
         		
+        		final double windowAvg = windowFull ? (windowSum / WINDOW_SIZE) : currentScore;
+        		finalScore = windowAvg;
+        		
+        		if (k == 0)
+        			initialScore = currentScore;
+        		
         		if (windowFull)
         		{
         			final double avgScore = windowSum / WINDOW_SIZE;
@@ -113,13 +126,41 @@ public final class SPSA
 				{
 					bestScore = avgScore;
 					bestWeights = theta.clone();
+					
+					if (logger != null)
+					{
+						logger.logBest(
+							k, phaseName, System.currentTimeMillis() - startTime, bestScore, bestWeights);
+					}
 				}
         		}
         		
         		this.iterationCount++;
+        		
+        		if (logger != null)
+			{
+				logger.logIteration(
+					k, phaseName,
+					System.currentTimeMillis() - startTime,
+					ak, ck,
+					scorePlus, scoreMinus,
+					windowAvg, bestScore,
+					theta);
+			}
         }
         
         evaluator.setWeights(bestWeights);
+        
+        if (logger != null)
+        {
+		    	logger.logSummary(
+		    		phaseName,
+		    		iterationCount,
+		    		System.currentTimeMillis() - startTime,
+		    		initialScore,
+		    		finalScore,
+		    		bestScore);
+        }
 	}
 	
 	/**
