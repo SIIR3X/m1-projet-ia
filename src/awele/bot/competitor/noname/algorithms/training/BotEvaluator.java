@@ -1,5 +1,7 @@
 package awele.bot.competitor.noname.algorithms.training;
 
+import java.util.Random;
+
 import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
@@ -9,32 +11,15 @@ import awele.bot.competitor.noname.core.bitboard.BitConstants;
 
 public final class BotEvaluator
 {
-	/**
-	 * JOAN_SALA : évaluation contre le bot Joan Sala (poids fixes)
-	 * SELF_PLAY : évaluation en auto-jouant contre soi-même (poids variables)
-	 */
-	public enum OpponentProfile
-	{
-		JOAN_SALA,
-		SELF_PLAY
-	}
-	
 	// ===== État interne =====
 	
 	/**
-	 * Profil adversaire à utiliser pour l'évaluation
+	 * Sélecteur adaptatif de profils d'adversaires pour l'entraînement
 	 */
-	private final OpponentProfile profile;
+	private final AdaptiveOpponentSelector selector;
 	
-	/**
-	 * Évaluateur de position à utiliser pour l'entraînement
-	 */
-	private final PositionEvaluator evaluator;
-	
-	/**
-	 * Table de transposition à utiliser pour l'entraînement
-	 */
-	private final TranspositionTable transpositionTable;
+	private final TranspositionTable candidateTT;
+	private final TranspositionTable opponentTT;
 	
 	/**
 	 * Plateau de départ réutilisé
@@ -46,20 +31,18 @@ public final class BotEvaluator
 	private static final int NB_HOLES = BitConstants.NB_HOLES;
 	private static final int MAX_MOVES_PER_GAME = 200;
 	
+	
+	private final Random rng = new Random(0xC0FFEE);
+	private static final int RANDOM_OPENING_PLIES = 6; // 4 à 10 typiquement
+	private static final double RANDOM_MOVE_EPS = 1e-9;
+	
+	
 	public BotEvaluator()
 	{
-		this(OpponentProfile.JOAN_SALA);
-	}
-	
-	public BotEvaluator(OpponentProfile profile)
-	{
-		this.profile = profile;
-		this.transpositionTable = new TranspositionTable();
+		this.selector = new AdaptiveOpponentSelector();
+		this.candidateTT = new TranspositionTable();
+		this.opponentTT = new TranspositionTable();
 		this.startBoard = new BitBoard();
-		
-		this.evaluator = (profile == OpponentProfile.JOAN_SALA)
-			? new PositionEvaluator(PositionEvaluator.getDefautltWeights())
-			: null;
 	}
 	
 	/**
@@ -69,27 +52,54 @@ public final class BotEvaluator
 	 * @param depth Profondeur de recherche à utiliser pour les parties d'évaluation
 	 * @return Le score moyen du bot candidat
 	 */
-	public double evaluate(double[] weights, int nbGames, int depth)
+	public double evaluate(double[] weights, int nbGames, int depth, AdaptiveOpponentSelector.OpponentProfile profile)
 	{
 		final PositionEvaluator candidateEvaluator = new PositionEvaluator(weights);
-		
-		final PositionEvaluator opponentEvaluator = (profile == OpponentProfile.SELF_PLAY)
-			? candidateEvaluator
-			: evaluator;
-		
+		final PositionEvaluator opponentEvaluator = selector.getEvaluator(profile);
 		double totalScore = 0.0;
 		
 		for (int game = 0; game < nbGames; game++)
 		{
 			final boolean candidateIsPlayer0 = (game % 2 == 0);
-			
 			final int result = playSingleGame(candidateEvaluator, opponentEvaluator, candidateIsPlayer0, depth);
-			
 			totalScore += result;
 		}
 		
+		selector.reportResult(profile, totalScore > 0 ? 1 : (totalScore < 0 ? -1 : 0));
+		
 		return totalScore / (double)nbGames;
 	}
+	
+	public AdaptiveOpponentSelector.OpponentProfile sampleProfile(double[] candidateWeights)
+	{
+		return selector.selectProfile(candidateWeights);
+	}
+	
+	private void playRandomOpening(BitBoard board, int plies)
+	{
+	    for (int p = 0; p < plies && !board.isGameOver(); p++)
+	    {
+	        int player = board.getCurrentPlayer();
+	        boolean[] valid = board.getValidMoves(player);
+
+	        int count = 0;
+	        for (boolean v : valid) if (v) count++;
+	        if (count == 0) return;
+
+	        int pick = rng.nextInt(count);
+	        int move = -1;
+	        for (int i = 0; i < valid.length; i++)
+	        {
+	            if (!valid[i]) continue;
+	            if (pick-- == 0) { move = i; break; }
+	        }
+
+	        double[] decision = new double[NB_HOLES];
+	        if (move >= 0) decision[move] = 1.0;
+	        board.playMove(decision);
+	    }
+	}
+
 	
 	/**
 	 * Joue une partie complète entre deux évaluateurs
@@ -107,14 +117,16 @@ public final class BotEvaluator
 	{
 		startBoard.initialize();
 		BitBoard board = startBoard.clone();
+		candidateTT.clear();
+		opponentTT.clear();
+		playRandomOpening(board, RANDOM_OPENING_PLIES);
 		
 		final TranspositionTable savedTT = BitMinMaxNode.transpositionTable;
 		final PositionEvaluator savedEval = BitMinMaxNode.positionEvaluator;
 		final boolean savedExpired = BitMinMaxNode.timeExpired;
 		final long savedStart = BitMinMaxNode.searchStartTime;
 		final long savedMax = BitMinMaxNode.maxSearchTime;
-		
-		BitMinMaxNode.transpositionTable = this.transpositionTable;
+
 		BitMinMaxNode.timeExpired = false;
 		BitMinMaxNode.searchStartTime = 0L;
 		BitMinMaxNode.maxSearchTime = Long.MAX_VALUE;
@@ -134,6 +146,8 @@ public final class BotEvaluator
 				final PositionEvaluator currentEval = isCandidateTurn
 					? candidateEvaluator
 					: opponentEvaluator;
+				
+				BitMinMaxNode.transpositionTable = isCandidateTurn ? candidateTT : opponentTT;
 				
 				final double[] decision = getBestDecision(board, currentEval, depth);
 				board.playMove(decision);
@@ -202,5 +216,10 @@ public final class BotEvaluator
 		}
 		
 		return decision;
+	}
+	
+	public void updateBestWeights(double[] weights)
+	{
+	    selector.updateBestWeights(weights);
 	}
 }

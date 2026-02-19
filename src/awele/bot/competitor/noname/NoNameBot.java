@@ -40,13 +40,8 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Budget total dispobile pour l'apprentissage (en ms)
 	 */
-	private static final long LEARN_BUDGET_MS = 10L * 60L * 1_000L;
+	private static final long LEARN_BUDGET_MS = 60L * 60L * 1_000L;
 	
-	/**
-	 * Proportion du budget allouée à la phase Joan (Sala)
-	 */
-	private static final double JOAN_SALA_RATIO = 0.75;
-
 	public NoNameBot() throws InvalidBotException
 	{
 		this.setBotName("NoName");
@@ -68,41 +63,89 @@ public final class NoNameBot extends CompetitorBot
 	{
 		try (TrainingLogger logger = new TrainingLogger())
 		{
-			// PHASE 1 - JOAN SALA
-			final long joanSalaBudgetMs = (long)(LEARN_BUDGET_MS * JOAN_SALA_RATIO);
-			final SPSAConfig configPhase1 = new SPSAConfig(
-				0.602,
-				0.101,
-				0.5,
-				0.2,
-				100.0,
-				2,
-				5,
-				joanSalaBudgetMs,
-				-50.0,
-				50.0
-			);
-			final BotEvaluator botEvaluator = new BotEvaluator();
-			final SPSA spsaPhase1 = new SPSA(configPhase1);
-			spsaPhase1.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "JOAN_SALA");
+//			final SPSAConfig config = new SPSAConfig(
+//				0.602, // alpha : exposant de décroissance du taux d'apprentissage
+//				0.101, // gamma : exposant de décroissance du taux de perturbation
+//				0.05, // a : amplitude initiale du taux d'apprentissage
+//				1, // c : amplitude initiale du taux de perturbation
+//				5000.0, // A : paramètre de stabilité
+//				2, // nbGamesPerEstimate : nombre de parties à simuler à chaque évaluation
+//				6, // trainingDepth : profondeur de recherche pendant l'entraînement
+//				LEARN_BUDGET_MS,
+//				-50.0, 50.0
+//			);
 			
-			// PHASE 2 - SELF-PLAY
-			final long selfPlayBudgetMs = LEARN_BUDGET_MS - joanSalaBudgetMs;
+			// 0.85 en 10Min
+//			final SPSAConfig config = new SPSAConfig(
+//					0.602, 0.101,   // alpha, gamma (Spall 1998)
+//					0.5,   0.2,     // a, c : exploration large sur toute la durée
+//					100.0,          // A : stabilisation en début d'entraînement
+//					2,              // nbGamesPerEstimate
+//					5,              // trainingDepth
+//					LEARN_BUDGET_MS,
+//					-50.0, 50.0     // weightMin, weightMax
+//				);
+			
+			// 0.38 en 38min
+//			final SPSAConfig config = new SPSAConfig(
+//				0.602, 0.101,   // alpha, gamma (Spall 1998)
+//				0.5,   0.2,     // a, c : exploration large sur toute la durée
+//				100.0,          // A : stabilisation en début d'entraînement
+//				8,              // nbGamesPerEstimate
+//				6,              // trainingDepth
+//				LEARN_BUDGET_MS,
+//				-50.0, 50.0     // weightMin, weightMax
+//			);
+			
+			final long PHASE1_MS = 25L * 60L * 1_000L;
+			final long PHASE2_MS = LEARN_BUDGET_MS - PHASE1_MS;
+			
+	        // Phase 1 : exploration rapide
+			final SPSAConfig configPhase1 = new SPSAConfig(
+				    0.602, 0.101,   // alpha, gamma
+				    0.6,   0.6,     // a, c  (ck plus grand et plus durable)
+				    10.0,           // A     (démarrage plus réactif)
+				    4,              // nbGamesPerEstimate
+				    5,              // trainingDepth
+				    PHASE1_MS,
+				    -50.0, 50.0
+				);
+
+
+	        // Phase 2 : raffinement stable
 			final SPSAConfig configPhase2 = new SPSAConfig(
-				0.602,
-				0.101,
-				0.5,
-				0.2,
-				100.0,
-				2,
-				5,
-				selfPlayBudgetMs,
-				-50.0,
-				50.0
-			);
-			final BotEvaluator selfPlayEvaluator = new BotEvaluator(BotEvaluator.OpponentProfile.SELF_PLAY);
-			final SPSA spsaPhase2 = new SPSA(configPhase2);
-			spsaPhase2.optimize(BitMinMaxNode.positionEvaluator, selfPlayEvaluator, logger, "SELF_PLAY");	
+				    0.602, 0.101,
+				    0.5,   0.3,     // a, c  (perturbation suffisante)
+				    30.0,           // A
+				    6,              // nbGamesPerEstimate (plus rapide que 8, assez stable)
+				    6,              // trainingDepth
+				    PHASE2_MS,
+				    -50.0, 50.0
+				);
+
+				
+	        final BotEvaluator botEvaluator = new BotEvaluator();
+
+	        // Phase 1
+	        new SPSA(configPhase1).optimize(
+	            BitMinMaxNode.positionEvaluator,
+	            botEvaluator,
+	            logger,
+	            "FAST_25MIN"
+	        );
+
+	        // Phase 2 (repart des meilleurs poids trouvés en phase 1 car optimize() fait evaluator.setWeights(bestWeights))
+	        new SPSA(configPhase2).optimize(
+	            BitMinMaxNode.positionEvaluator,
+	            botEvaluator,
+	            logger,
+	            "REFINE_REST"
+	        );
+			
+//			final BotEvaluator botEvaluator = new BotEvaluator();
+//			final SPSA spsa = new SPSA(config);
+//			
+//			spsa.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "ADAPTIVE");
 		}
 	}
 
