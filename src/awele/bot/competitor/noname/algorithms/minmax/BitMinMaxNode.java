@@ -32,17 +32,17 @@ public abstract class BitMinMaxNode
 	/**
 	 * Timestamp de début de la recherche
 	 */
-	protected static long searchStartTime;
+	public static long searchStartTime;
 
 	/**
 	 * Durée maximale autorisée pour la recherche
 	 */
-	protected static long maxSearchTime;
+	public static long maxSearchTime;
 
 	/*
 	 * Flag indiquant si le temps est écoulé
 	 */
-	protected static volatile boolean timeExpired;
+	public static volatile boolean timeExpired;
 
 	/**
 	 * Table de transposition partagée pour stocker les évaluations des positions
