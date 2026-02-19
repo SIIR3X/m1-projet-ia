@@ -98,8 +98,11 @@ public final class SPSA
 				thetaMinus[i] = clip(theta[i] - ck * delta[i]);
 			}
         		
-        		final double scorePlus = botEvaluator.evaluate(thetaPlus, config.nbGamesPerEstimate, config.trainingDepth);
-        		final double scoreMinus = botEvaluator.evaluate(thetaMinus, config.nbGamesPerEstimate, config.trainingDepth);
+        		final AdaptiveOpponentSelector.OpponentProfile profile =
+        			botEvaluator.sampleProfile(theta);
+        		
+        		final double scorePlus = botEvaluator.evaluate(thetaPlus, config.nbGamesPerEstimate, config.trainingDepth, profile);
+        		final double scoreMinus = botEvaluator.evaluate(thetaMinus, config.nbGamesPerEstimate, config.trainingDepth, profile);
         		
         		final double scoreDiff = scorePlus - scoreMinus;
         		
@@ -126,6 +129,7 @@ public final class SPSA
 				{
 					bestScore = avgScore;
 					bestWeights = theta.clone();
+					botEvaluator.updateBestWeights(bestWeights);
 					
 					if (logger != null)
 					{
