@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.training;
+package awele.bot.competitor.noname.algorithms.training.common;
 
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 
@@ -51,6 +51,21 @@ public final class BotEvaluator
 	 */
 	private static final int RANDOM_OPENING_PLIES = 6;
 	
+	/**
+	 * Points attribués pour une victoire (inspiré de Saillot)
+	 */
+	private static final double WIN_BONUS  = 200.0;
+
+	/**
+	 * Points attribués pour un match nul
+	 */
+	private static final double DRAW_BONUS = 100.0;
+	
+	/**
+	 * Nombre de partie contre le profil de boss pour l'évaluation
+	 */
+	private static final int NB_BOSSE_GAMES = 4;
+	
 	public BotEvaluator()
 	{
 		this.selector = new AdaptiveOpponentSelector();
@@ -69,19 +84,51 @@ public final class BotEvaluator
 	public double evaluate(double[] weights, int nbGames, int depth, AdaptiveOpponentSelector.OpponentProfile profile)
 	{
 		final PositionEvaluator candidateEvaluator = new PositionEvaluator(weights);
+		double totalFitness = 0.0;
+		double totalResult = 0.0;
+		
+		// Parties contre le profil normal
 		final PositionEvaluator opponentEvaluator = selector.getEvaluator(profile);
-		double totalScore = 0.0;
+		final double normalMultiplier = selector.getMultiplier(profile);
+		final int normalOpponentDepth = resolveDepth(profile, depth);
 		
 		for (int game = 0; game < nbGames; game++)
 		{
-			final boolean candidateIsPlayer0 = (game % 2 == 0);
-			final int result = playSingleGame(candidateEvaluator, opponentEvaluator, candidateIsPlayer0, depth);
-			totalScore += result;
+			final boolean candidateFirst = (game % 2 == 0);
+			final double gameFitness = playSingleGame(
+				candidateEvaluator,
+				opponentEvaluator,
+				candidateFirst,
+				depth,
+				normalOpponentDepth) * normalMultiplier;
+			
+			totalFitness += gameFitness;
+			totalResult += outcomeSign(gameFitness, normalMultiplier);
 		}
 		
-		selector.reportResult(profile, totalScore > 0 ? 1 : (totalScore < 0 ? -1 : 0));
+		selector.reportResult(profile, totalResult > 0 ? 1 : (totalResult < 0 ? -1 : 0));
 		
-		return totalScore / (double)nbGames;
+		// Partie contre le BOSS
+		final AdaptiveOpponentSelector.OpponentProfile bossProfile = AdaptiveOpponentSelector.OpponentProfile.BOSS;
+		
+		final PositionEvaluator bossEvaluator = selector.getEvaluator(bossProfile);
+		final int bossDepth = selector.getDepth(bossProfile);
+		final double bossMultiplier = selector.getMultiplier(bossProfile);
+		
+		for (int game = 0; game < NB_BOSSE_GAMES; game++)
+		{
+			final boolean candidateFirst = (game % 2 == 0);
+			final double gameFitness = playSingleGame(
+				candidateEvaluator,
+				bossEvaluator,
+				candidateFirst,
+				depth,
+				bossDepth) * bossMultiplier;
+			
+			totalFitness += gameFitness;
+		}
+		
+		return totalFitness;
 	}
 	
 	/**
@@ -103,19 +150,12 @@ public final class BotEvaluator
 	    selector.updateBestWeights(weights);
 	}
 		
-	/**
-	 * Joue une partie complète entre deux évaluateurs
-	 * @param candidateEvaluator Évaluateur de position du bot candidat
-	 * @param opponentEvaluator Évaluateur de position de l'adversaire
-	 * @param candidateIsPlayer0 Indique si le bot candidat joue en premier (joueur 0) ou en second (joueur 1)
-	 * @param depth Profondeur de recherche à utiliser pour les deux joueurs pendant la partie
-	 * @return 1 si le bot candidat gagne, -1 s'il perd, 0 en cas de match nul
-	 */
-	private int playSingleGame(
+	private double playSingleGame(
 		PositionEvaluator candidateEvaluator,
 		PositionEvaluator opponentEvaluator,
 		boolean candidateIsPlayer0,
-		int depth)
+		int candidateDepth,
+		int opponentDepth)
 	{
 		startBoard.initialize();
 		BitBoard board = startBoard.clone();
@@ -148,23 +188,30 @@ public final class BotEvaluator
 				final PositionEvaluator currentEval = isCandidateTurn
 					? candidateEvaluator
 					: opponentEvaluator;
+				final int currentDepth = isCandidateTurn
+					? candidateDepth
+					: opponentDepth;
 				
 				BitMinMaxNode.transpositionTable = isCandidateTurn ? candidateTT : opponentTT;
 				
-				final double[] decision = getBestDecision(board, currentEval, depth);
+				final double[] decision = getBestDecision(board, currentEval, currentDepth);
 				board.playMove(decision);
 				
 				movesPlayed++;
 			}
 			
+			final int candidatePlayer = candidateIsPlayer0 ? 0 : 1;
+			final int opponentPlayer = 1 - candidatePlayer;
+			final int candidateScore = board.getScore(candidatePlayer);
+			final int opponentScore = board.getScore(opponentPlayer);
+			final int scoreDelta = candidateScore - opponentScore;
 			final int winner = board.getWinner();
 			
+			if (winner == candidatePlayer)
+				return WIN_BONUS + scoreDelta;
 			if (winner == -1)
-				return 0;
-			
-			final int candidatePlayer = candidateIsPlayer0 ? 0 : 1;
-			
-			return (winner == candidatePlayer) ? 1 : -1;
+				return DRAW_BONUS;
+			return scoreDelta;
 		}
 		finally
 		{
@@ -248,5 +295,22 @@ public final class BotEvaluator
 		}
 		
 		return decision;
+	}
+	
+	private int resolveDepth(AdaptiveOpponentSelector.OpponentProfile profile, int normalDepth)
+	{
+		final int depth = selector.getDepth(profile);
+		return (depth == AdaptiveOpponentSelector.DYNMIC_DEPTH) ? normalDepth : depth;
+	}
+	
+	private int outcomeSign(double gameFitness, double multiplier)
+	{
+		final double normalised = gameFitness / multiplier;
+		
+		if (normalised > DRAW_BONUS)
+			return 1;
+		if (normalised < -DRAW_BONUS)
+			return -1;
+		return 0;
 	}
 }

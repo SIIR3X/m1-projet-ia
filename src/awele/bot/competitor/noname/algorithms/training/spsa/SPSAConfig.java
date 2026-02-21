@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.training;
+package awele.bot.competitor.noname.algorithms.training.spsa;
 
 /**
  * @author Lucas Fagioli

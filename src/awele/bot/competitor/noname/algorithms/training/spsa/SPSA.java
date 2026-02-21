@@ -1,8 +1,10 @@
-package awele.bot.competitor.noname.algorithms.training;
+package awele.bot.competitor.noname.algorithms.training.spsa;
 
 import java.util.Random;
 
 import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.algorithms.training.common.AdaptiveOpponentSelector;
+import awele.bot.competitor.noname.algorithms.training.common.BotEvaluator;
 import awele.bot.competitor.noname.test.TrainingLogger;
 
 /**

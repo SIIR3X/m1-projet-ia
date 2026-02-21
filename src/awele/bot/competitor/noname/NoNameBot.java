@@ -3,9 +3,9 @@ package awele.bot.competitor.noname;
 import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.algorithms.training.BotEvaluator;
-import awele.bot.competitor.noname.algorithms.training.SPSA;
-import awele.bot.competitor.noname.algorithms.training.SPSAConfig;
+import awele.bot.competitor.noname.algorithms.training.cmaes.CMAES2A;
+import awele.bot.competitor.noname.algorithms.training.cmaes.CMAESConfig1;
+import awele.bot.competitor.noname.algorithms.training.common.BotEvaluator;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
 import awele.bot.competitor.noname.test.TrainingLogger;
@@ -63,28 +63,65 @@ public final class NoNameBot extends CompetitorBot
 	{
 		try (TrainingLogger logger = new TrainingLogger())
 		{
-			// Création de la configuation pour l'algorithme SPSA
-			final SPSAConfig config = new SPSAConfig(
-				    0.602, // alpha : taux de décroissance du gain (learning rate)
-				    0.101, // gamma : taux de décroissance de la perturbation
-				    0.4, // a : gain initial (learning rate initial)
-				    0.5, // c : perturbation initiale
-				    1700.0, // A : nombre d'itérations avant de commencer à décroître le gain
-				    4, // nbGamesPerIteration : nombre de parties jouées pour estimer la performance à chaque itération
-				    5, // trainingDepth : profondeur de recherche utilisée pendant l'entraînement
-				    LEARN_BUDGET_MS, // learnBudgetMs : budget total pour l'apprentissage en ms
-				    -50.0, // minWeight : poids minimum pour les paramètres du bot
-				    50.0  // maxWeight : poids maximum pour les paramètres du bot
-				);
 			
-			// Création de l'évaluateur de bot qui sera utilisé pour estimer la performance du bot pendant l'entraînement
+			
+//			// Création de la configuation pour l'algorithme SPSA
+//			final SPSAConfig config = new SPSAConfig(
+//				    0.602, // alpha : taux de décroissance du gain (learning rate)
+//				    0.101, // gamma : taux de décroissance de la perturbation
+//				    0.4, // a : gain initial (learning rate initial)
+//				    0.5, // c : perturbation initiale
+//				    1700.0, // A : nombre d'itérations avant de commencer à décroître le gain
+//				    4, // nbGamesPerIteration : nombre de parties jouées pour estimer la performance à chaque itération
+//				    5, // trainingDepth : profondeur de recherche utilisée pendant l'entraînement
+//				    LEARN_BUDGET_MS, // learnBudgetMs : budget total pour l'apprentissage en ms
+//				    -50.0, // minWeight : poids minimum pour les paramètres du bot
+//				    50.0  // maxWeight : poids maximum pour les paramètres du bot
+//				);
+//			
+//			// Création de l'évaluateur de bot qui sera utilisé pour estimer la performance du bot pendant l'entraînement
+//	        final BotEvaluator botEvaluator = new BotEvaluator();
+//	        
+//	        GeneticConfig gaConfig = GeneticConfig.defaultConfig();
+//	        GeneticAlgorithm ga = new GeneticAlgorithm(gaConfig, botEvaluator, true);
+//
+//	        
+//	        // Création de l'algorithme SPSA avec la configuration et l'évaluateur
+//	        final SPSA spsa = new SPSA(config);
+//	        
+//	        ga.optimize(BitMinMaxNode.positionEvaluator);
+//	        
+//	        // Lancement de l'optimisation des paramètres du bot avec SPSA
+//	        spsa.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "ADAPTIVE");
+			
 	        final BotEvaluator botEvaluator = new BotEvaluator();
-	        
-	        // Création de l'algorithme SPSA avec la configuration et l'évaluateur
-	        final SPSA spsa = new SPSA(config);
-	        
-	        // Lancement de l'optimisation des paramètres du bot avec SPSA
-	        spsa.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "ADAPTIVE");
+
+	        final int n = BitMinMaxNode.positionEvaluator.getNbWeights();
+//	        final CMAESConfig cmaesConfig = new CMAESConfig(
+//	            (20.0 - (-20.0)) / 3.0,  // sigma0 large : exploration globale dès le départ
+//	            4 + (int)(3 * Math.log(n)), // lambda selon Hansen
+//	            (4 + (int)(3 * Math.log(n))) / 2, // mu = lambda/2
+//	            -20.0,
+//	             20.0,
+//	            6,               // nbGamesPerEval
+//	            5,               // trainingDepth
+//	            LEARN_BUDGET_MS, // budget total : ~59 min
+//	            5                // reEvalInterval
+//	        );
+	        final CMAESConfig1 cmaesConfig = new CMAESConfig1(
+	        	    (20.0 - (-20.0)) / 3.0,  // sigma0 inchangé
+	        	    4 * (4 + (int)(3 * Math.log(n))), // lambda x4 : ~44 individus
+	        	    (4 * (4 + (int)(3 * Math.log(n)))) / 2, // mu = lambda/2
+	        	    -20.0,
+	        	     20.0,
+	        	    32,              // nbGamesPerEval x2-3 : moins de bruit par éval
+	        	    5,               // trainingDepth +1 : plus discriminant
+	        	    LEARN_BUDGET_MS,
+	        	    10               // reEvalInterval plus espacé
+	        	);
+
+	        final CMAES2A cmaes = new CMAES2A(cmaesConfig, botEvaluator);
+	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
 		}
 	}
 
