@@ -7,6 +7,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 /**
  * @author Lucas Fagioli
@@ -34,13 +35,24 @@ public final class TrainingLogger implements AutoCloseable
     private final PrintWriter weightsWriter;
     private final PrintWriter bestWriter;
     private final PrintWriter summaryWriter;
-
+    private final PrintWriter cmaesDistWriter;
+    private final PrintWriter cmaesSamplesWriter;
+    
     // ===== État =====
 
     private final String  runDir;
     private       boolean closed;
 
     // ===== En-têtes CSV =====
+    
+    private static final String HEADER_CMAES_DIST =
+    	    "generation,phase,elapsed_ms,sigma,condition_number," +
+    	    "mean_w0,mean_w1,mean_w2,mean_w3,mean_w4,mean_w5,mean_w6,mean_w7,mean_w8,mean_w9," +
+    	    "std_w0,std_w1,std_w2,std_w3,std_w4,std_w5,std_w6,std_w7,std_w8,std_w9";
+
+    	private static final String HEADER_CMAES_SAMPLES =
+    	    "generation,phase,elapsed_ms,individual_index,fitness," +
+    	    "w0,w1,w2,w3,w4,w5,w6,w7,w8,w9";
 
     private static final String HEADER_ITERATIONS =
         "iteration,phase,elapsed_ms,ak,ck,score_plus,score_minus,score_diff,window_avg,best_score";
@@ -80,12 +92,71 @@ public final class TrainingLogger implements AutoCloseable
             this.weightsWriter    = openCsv("spsa_weights.csv",    HEADER_WEIGHTS);
             this.bestWriter       = openCsv("spsa_best.csv",       HEADER_BEST);
             this.summaryWriter    = openCsv("spsa_summary.csv",    HEADER_SUMMARY);
+            this.cmaesDistWriter    = openCsv("cmaes_distribution.csv", HEADER_CMAES_DIST);
+            this.cmaesSamplesWriter = openCsv("cmaes_samples.csv",      HEADER_CMAES_SAMPLES);
         }
         catch (IOException e)
         {
             throw new RuntimeException("[TrainingLogger] Impossible de créer les fichiers : " + e.getMessage(), e);
         }
     }
+    
+    public void logCmaesSamples(
+    	    int generation,
+    	    String phase,
+    	    long elapsedMs,
+    	    double[][] samples,
+    	    double[] fitnesses)
+    	{
+    	    if (closed) return;
+
+    	    for (int k = 0; k < samples.length; k++)
+    	    {
+    	        StringBuilder sb = new StringBuilder();
+
+    	        sb.append(generation).append(',')
+    	          .append(phase).append(',')
+    	          .append(elapsedMs).append(',')
+    	          .append(k).append(',')
+    	          .append(String.format(Locale.US, "%.6f", fitnesses[k]));
+
+    	        for (double w : samples[k])
+    	            sb.append(',').append(String.format(Locale.US, "%.6f", w));
+
+    	        cmaesSamplesWriter.println(sb);
+    	    }
+
+    	    cmaesSamplesWriter.flush();
+    	}
+    
+    public void logCmaesDistribution(
+    	    int generation,
+    	    String phase,
+    	    long elapsedMs,
+    	    double sigma,
+    	    double conditionNumber,
+    	    double[] mean,
+    	    double[] std)
+    	{
+    	    if (closed) return;
+
+    	    StringBuilder sb = new StringBuilder();
+
+    	    sb.append(generation).append(',')
+    	      .append(phase).append(',')
+    	      .append(elapsedMs).append(',')
+    	      .append(String.format(Locale.US, "%.6f", sigma)).append(',')
+    	      .append(String.format(Locale.US, "%.6f", conditionNumber));
+
+    	    for (double m : mean)
+    	        sb.append(',').append(String.format(Locale.US, "%.6f", m));
+
+    	    for (double s : std)
+    	        sb.append(',').append(String.format(Locale.US, "%.6f", s));
+
+    	    cmaesDistWriter.println(sb);
+    	    cmaesDistWriter.flush();
+    	}
 
     // ===== API de log =====
 
@@ -120,7 +191,8 @@ public final class TrainingLogger implements AutoCloseable
         if (closed) return;
 
         // spsa_iterations.csv
-        iterationsWriter.printf("%d,%s,%d,%.6f,%.6f,%.4f,%.4f,%.4f,%.4f,%.4f%n",
+        iterationsWriter.printf(Locale.US,
+        	    "%d,%s,%d,%.6f,%.6f,%.4f,%.4f,%.4f,%.4f,%.4f%n",
             iteration, phase, elapsedMs,
             ak, ck,
             scorePlus, scoreMinus, scorePlus - scoreMinus,
@@ -131,7 +203,7 @@ public final class TrainingLogger implements AutoCloseable
         final StringBuilder wb = new StringBuilder();
         wb.append(iteration).append(',').append(phase);
         for (final double w : weights)
-            wb.append(',').append(String.format("%.6f", w));
+            wb.append(',').append(String.format(Locale.US, "%.6f", w));
         weightsWriter.println(wb);
         weightsWriter.flush();
     }
@@ -159,9 +231,9 @@ public final class TrainingLogger implements AutoCloseable
         sb.append(iteration).append(',')
           .append(phase).append(',')
           .append(elapsedMs).append(',')
-          .append(String.format("%.6f", bestScore));
+          .append(String.format(Locale.US, "%.6f", bestScore));
         for (final double w : weights)
-            sb.append(',').append(String.format("%.6f", w));
+            sb.append(',').append(String.format(Locale.US, "%.6f", w));
 
         bestWriter.println(sb);
         bestWriter.flush();
@@ -206,6 +278,8 @@ public final class TrainingLogger implements AutoCloseable
         closeQuietly(weightsWriter);
         closeQuietly(bestWriter);
         closeQuietly(summaryWriter);
+        closeQuietly(cmaesDistWriter);
+        closeQuietly(cmaesSamplesWriter);
     }
 
     // ===== Utilitaires privés =====

@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.training;
+package awele.bot.competitor.noname.algorithms.training.common;
 
 import java.util.Random;
 
@@ -32,7 +32,14 @@ public final class AdaptiveOpponentSelector
 		STARVER,
 		
 		/** Self-play : adversaire avec les poids actuels du candidat */
-		SELF
+		SELF,
+		
+		/**
+		 * Boss : adversaire fixe jouant à haute profondeur avec DiffScore pur
+		 * Est toujours présent dans la sélection
+		 * Rapporte deux fois plus de points
+		 */
+		BOSS
 	};
 	
 	// ===== Poids =====
@@ -47,6 +54,47 @@ public final class AdaptiveOpponentSelector
 		{ 10.0, 8.0, -3.0, -2.0, 3.0 }, // HOARDER
 		{ 10.0, 0.0, -4.0, -15.0, 1.0 }, // STARVER
 		{ 10.0, 0.0, 0.0, 0.0, 0.0 }, // SELF
+		{ 10.0,  0.0,   0.0,   0.0,  0.0 }, // BOSS
+	};
+	
+	// ===== Profondeur de profil =====
+	
+	/**
+	 * Sentinelle indiquant que la profondeur effective est celle passée à l'évaluateur
+	 */
+	public static final int DYNMIC_DEPTH = -1;
+	
+	/**
+	 * Profondeur de recherche pour le profil BOSS
+	 */
+	public static final int BOSS_DEPTH = 8;
+	
+	/**
+	 * Profondeur de recherche pour chaque profil
+	 */
+	private static final int[] PROFILE_DEPTHS = {
+		DYNMIC_DEPTH, // BALANCED
+		DYNMIC_DEPTH, // ATTACKER
+		DYNMIC_DEPTH, // DEFENDER
+		DYNMIC_DEPTH, // HOARDER
+		DYNMIC_DEPTH, // STARVER
+		DYNMIC_DEPTH, // SELF
+		BOSS_DEPTH,   // BOSS
+	};
+	
+	// ===== Multiplicateur de fitness =====
+	
+	/**
+	 * Multiplicateur de fitness pour chaque profil
+	 */
+	private static final double[] PROFILE_MULTIPLIERS = {
+		1.0, // BALANCED
+		1.0, // ATTACKER
+		1.0, // DEFENDER
+		1.0, // HOARDER
+		1.0, // STARVER
+		1.0, // SELF
+		3.0, // BOSS (rapporte deux fois plus de points)
 	};
 	
 	// ===== Probabilités initiales =====
@@ -61,6 +109,7 @@ public final class AdaptiveOpponentSelector
 		0.20, // HOARDER
 		0.20, // STARVER
 		0.10, // SELF
+		0.00, // BOSS (toujours présent, mais ne participe pas à la sélection aléatoire)
 	};
 	
 	/**
@@ -84,7 +133,6 @@ public final class AdaptiveOpponentSelector
 	private final int[] winRateCount;
 	private final PositionEvaluator[] evaluators;
 	private double[] bestKnownWeights;
-	
 	private final Random random;
 	
 	public AdaptiveOpponentSelector()
@@ -123,8 +171,10 @@ public final class AdaptiveOpponentSelector
 	 */
 	public void reportResult(OpponentProfile profile, int result)
 	{
-		final int index = profile.ordinal();
+		if (profile == OpponentProfile.BOSS)
+			return;
 		
+		final int index = profile.ordinal();
 		final double outcome = (result + 1.0) / 2.0;
 		
 		winRateSum[index] -= winRateWindow[index][winRateIntex[index]];
@@ -141,6 +191,16 @@ public final class AdaptiveOpponentSelector
 	public PositionEvaluator getEvaluator(OpponentProfile profile)
 	{
 		return evaluators[profile.ordinal()];
+	}
+	
+	public int getDepth(OpponentProfile profile)
+	{
+		return PROFILE_DEPTHS[profile.ordinal()];
+	}
+	
+	public double getMultiplier(OpponentProfile profile)
+	{
+		return PROFILE_MULTIPLIERS[profile.ordinal()];
 	}
 	
 	public double[] getProbabilities()
@@ -180,6 +240,13 @@ public final class AdaptiveOpponentSelector
 		return OpponentProfile.values()[bestIndex];
 	}
 	
+	public void updateBestWeights(double[] weights)
+	{
+		this.bestKnownWeights = weights.clone();
+		this.evaluators[OpponentProfile.SELF.ordinal()] =
+			new PositionEvaluator(this.bestKnownWeights.clone());
+	}
+	
 	/**
 	 * Retourne un profil d'adversaire à utiliser pour la prochaine évaluation
 	 * @return Un profil d'adversaire échantillonné selon les probabilités actuelles
@@ -212,6 +279,12 @@ public final class AdaptiveOpponentSelector
 		
 		for (int i = 0; i < nbProfiles; i++)
 		{
+			if (OpponentProfile.values()[i] == OpponentProfile.BOSS)
+			{
+				raw[i] = 0.0;
+				continue;
+			}
+			
 			final double winRate = (winRateCount[i] == 0)
 				? 0.5
 				: winRateSum[i] / (double)winRateCount[i];
@@ -222,12 +295,5 @@ public final class AdaptiveOpponentSelector
 		
 		for (int i = 0; i < nbProfiles; i++)
 			probabilities[i] = raw[i] / sum;
-	}
-	
-	public void updateBestWeights(double[] weights)
-	{
-		this.bestKnownWeights = weights.clone();
-		this.evaluators[OpponentProfile.SELF.ordinal()] =
-			new PositionEvaluator(this.bestKnownWeights.clone());
 	}
 }
