@@ -91,7 +91,7 @@ public abstract class MinMaxNode
     /**
      * Initialisation
      */
-    protected static void initialize (Board board, int maxDepth)
+    public static void initialize (Board board, int maxDepth)
     {
         MinMaxNode.maxDepth = maxDepth;
         MinMaxNode.player = board.getCurrentPlayer ();
@@ -158,7 +158,7 @@ public abstract class MinMaxNode
      * L'évaluation de chaque coup possible pour le noeud
      * @return
      */
-    double [] getDecision ()
+    public double [] getDecision ()
     {
         return this.decision;
     }

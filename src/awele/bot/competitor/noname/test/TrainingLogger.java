@@ -47,25 +47,25 @@ public final class TrainingLogger implements AutoCloseable
     
     private static final String HEADER_CMAES_DIST =
     	    "generation,phase,elapsed_ms,sigma,condition_number," +
-    	    "mean_w0,mean_w1,mean_w2,mean_w3,mean_w4,mean_w5,mean_w6,mean_w7,mean_w8,mean_w9," +
-    	    "std_w0,std_w1,std_w2,std_w3,std_w4,std_w5,std_w6,std_w7,std_w8,std_w9";
+    	    "mean_w0,mean_w1,mean_w2,mean_w3,mean_w4,mean_w5,mean_w6,mean_w7,mean_w8,mean_w9,mean_w10,mean_w11,mean_w12,mean_w13," +
+    	    "std_w0,std_w1,std_w2,std_w3,std_w4,std_w5,std_w6,std_w7,std_w8,std_w9,std_w10,std_w11,std_w12,std_w13";
 
     	private static final String HEADER_CMAES_SAMPLES =
     	    "generation,phase,elapsed_ms,individual_index,fitness," +
-    	    "w0,w1,w2,w3,w4,w5,w6,w7,w8,w9";
+    	    "w0,w1,w2,w3,w4,w5,w6,w7,w8,w9,w10,w11,w12,w13";
 
     private static final String HEADER_ITERATIONS =
         "iteration,phase,elapsed_ms,ak,ck,score_plus,score_minus,score_diff,window_avg,best_score";
 
     private static final String HEADER_WEIGHTS =
     	    "iteration,phase," +
-    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_sequence_early," +
-    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_sequence_late";
+    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_mobility_early,w_latent_early,w_starvation_early," +
+    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_mobility_late,w_latent_late,w_starvation_late";
 
-    private static final String HEADER_BEST =
+    	private static final String HEADER_BEST =
     	    "iteration,phase,elapsed_ms,best_score," +
-    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_sequence_early," +
-    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_sequence_late";
+    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_mobility_early,w_latent_early,w_starvation_early," +
+    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_mobility_late,w_latent_late,w_starvation_late";
 
     private static final String HEADER_SUMMARY =
         "phase,nb_iterations,duration_ms,initial_score,final_score,best_score";

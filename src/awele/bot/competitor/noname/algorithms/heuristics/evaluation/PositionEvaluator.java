@@ -14,12 +14,14 @@ public final class PositionEvaluator
 	private final KrouHeuristic krouHeuristic;
 	private final DangerousHoleHeuristic dangerousHoleHeuristic;
 	private final EmptyHoleHeuristic emptyHoleHeuristic;
-	private final CaptureSequenceHeuristic captureSequenceHeuristic;
+	private final MobilityHeuristic mobilityHeuristic;
+	private final LatentCaptureHeuristic latentCaptureHeuristic;
+	private final StarvationThreatHeuristic starvationHeuristic;
 
 	/**
 	 * Nombre d'heuristiques utilisées, pour validation des poids
 	 */
-	private static final int N = 5;
+	private static final int N = 7;
 	
 	/**
 	 * Poids pour chaque heuristique en début de partie (early + mid)
@@ -39,7 +41,9 @@ public final class PositionEvaluator
 		KrouHeuristic.ID,
 		DangerousHoleHeuristic.ID,
 		EmptyHoleHeuristic.ID,
-		CaptureSequenceHeuristic.ID
+		MobilityHeuristic.ID,
+		LatentCaptureHeuristic.ID,
+		StarvationThreatHeuristic.ID
 	};
 	
 	/**
@@ -47,7 +51,7 @@ public final class PositionEvaluator
 	 */
 	public PositionEvaluator()
 	{
-		this(new double[] { 10.0, 0, 0, 0, 0 });
+		this(new double[] { 10.0, 0, 0, 0, 0, 0, 0 });
 	}
 	
 	/**
@@ -60,7 +64,9 @@ public final class PositionEvaluator
 		this.krouHeuristic = new KrouHeuristic();
 		this.dangerousHoleHeuristic = new DangerousHoleHeuristic();
 		this.emptyHoleHeuristic = new EmptyHoleHeuristic();
-		this.captureSequenceHeuristic = new CaptureSequenceHeuristic();
+		this.mobilityHeuristic = new MobilityHeuristic();
+		this.latentCaptureHeuristic = new LatentCaptureHeuristic();
+		this.starvationHeuristic = new StarvationThreatHeuristic();
 		
 		setWeights(weights);
 	}
@@ -82,13 +88,17 @@ public final class PositionEvaluator
         final double wk = phase * wEarly[1] + (1.0 - phase) * wLate[1];
         final double wd = phase * wEarly[2] + (1.0 - phase) * wLate[2];
         final double we = phase * wEarly[3] + (1.0 - phase) * wLate[3];
-        final double wq = phase * wEarly[4] + (1.0 - phase) * wLate[4];
+        final double wm = phase * wEarly[4] + (1.0 - phase) * wLate[4];
+        final double wlc = phase * wEarly[5] + (1.0 - phase) * wLate[5];
+        final double wst = phase * wEarly[6] + (1.0 - phase) * wLate[6];
         
         total += ws * (scoreHeuristic.evaluate(board, player) - scoreHeuristic.evaluate(board, opponent));
         total += wk * (krouHeuristic.evaluate(board, player) - krouHeuristic.evaluate(board, opponent));
         total += wd * (dangerousHoleHeuristic.evaluate(board, player) - dangerousHoleHeuristic.evaluate(board, opponent));
         total += we * (emptyHoleHeuristic.evaluate(board, player) - emptyHoleHeuristic.evaluate(board, opponent));
-        total += wq * (captureSequenceHeuristic.evaluate(board, player) - captureSequenceHeuristic.evaluate(board, opponent));
+        total += wm * (mobilityHeuristic.evaluate(board, player) - mobilityHeuristic.evaluate(board, opponent));
+        total += wlc * (latentCaptureHeuristic.evaluate(board, player) - latentCaptureHeuristic.evaluate(board, opponent));
+        total += wst * (starvationHeuristic.evaluate(board, player) - starvationHeuristic.evaluate(board, opponent));
 
         return total;
 	}
@@ -138,7 +148,7 @@ public final class PositionEvaluator
 	 */
 	public static double[] getDefautltWeights()
 	{
-		return new double[] { 10.0, 2.8, -5.4, -3.6, 2.0 };
+		return new double[] { 10.0, 2.8, -5.4, -3.6, 1.0, 2.0, -4.0 };
 	}
 
 	/**
@@ -147,11 +157,11 @@ public final class PositionEvaluator
 	 */
 	public static double[] getDefaultPhaseAwareWeights()
 	{
-		final double[] w5 = getDefautltWeights();
+		final double[] w = getDefautltWeights();
 		
 		return new double[] {
-			w5[0], w5[1], w5[2], w5[3], w5[4],
-			w5[0], w5[1], w5[2], w5[3], w5[4]
+			w[0], w[1], w[2], w[3], w[4], w[5], w[6],
+			w[0], w[1], w[2], w[3], w[4], w[5], w[6]
 		};
 	}
 	

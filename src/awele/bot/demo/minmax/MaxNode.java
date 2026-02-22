@@ -12,7 +12,7 @@ public class MaxNode extends MinMaxNode
      * Constructeur pour un noeud initial
      * @param board La situation de jeu pour laquelle il faut prendre une décision
      */
-    MaxNode (Board board)
+    public MaxNode (Board board)
     {
         this (board, 0, -Double.MAX_VALUE, Double.MAX_VALUE);
     }
