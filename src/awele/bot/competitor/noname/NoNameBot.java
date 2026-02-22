@@ -3,8 +3,8 @@ package awele.bot.competitor.noname;
 import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
 import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.algorithms.training.cmaes.CMAES2A;
-import awele.bot.competitor.noname.algorithms.training.cmaes.CMAESConfig1;
+import awele.bot.competitor.noname.algorithms.training.cmaes.CMAES;
+import awele.bot.competitor.noname.algorithms.training.cmaes.CMAESConfig;
 import awele.bot.competitor.noname.algorithms.training.common.BotEvaluator;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
@@ -108,19 +108,22 @@ public final class NoNameBot extends CompetitorBot
 //	            LEARN_BUDGET_MS, // budget total : ~59 min
 //	            5                // reEvalInterval
 //	        );
-	        final CMAESConfig1 cmaesConfig = new CMAESConfig1(
-	        	    (20.0 - (-20.0)) / 3.0,  // sigma0 inchangé
-	        	    4 * (4 + (int)(3 * Math.log(n))), // lambda x4 : ~44 individus
-	        	    (4 * (4 + (int)(3 * Math.log(n)))) / 2, // mu = lambda/2
-	        	    -20.0,
-	        	     20.0,
-	        	    32,              // nbGamesPerEval x2-3 : moins de bruit par éval
-	        	    5,               // trainingDepth +1 : plus discriminant
-	        	    LEARN_BUDGET_MS,
-	        	    10               // reEvalInterval plus espacé
-	        	);
+	        double[] initialWeights = BitMinMaxNode.positionEvaluator.getWeights().clone();
+	        double wMin = -20.0, wMax = 20.0;
+	        double sigma0 = (wMax - wMin) / 3.0;
 
-	        final CMAES2A cmaes = new CMAES2A(cmaesConfig, botEvaluator);
+	        CMAESConfig cfg = new CMAESConfig(
+	            initialWeights,
+	            sigma0,
+	            10_000_000L,     // stopEval très grand si tu veux que seul le temps arrête
+	            LEARN_BUDGET_MS,
+	            32,              // nbGamesPerEval
+	            6,               // trainingDepth
+	            wMin,
+	            wMax
+	        );
+
+	        final CMAES cmaes = new CMAES(cfg, botEvaluator);
 	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
 		}
 	}

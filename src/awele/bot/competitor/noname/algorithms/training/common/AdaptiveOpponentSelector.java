@@ -48,13 +48,13 @@ public final class AdaptiveOpponentSelector
 	 * Poids caractéristiques de chaque profil
 	 */
 	private static final double[][] PROFILE_WEIGHTS = {
-		{ 10.0, 0.0, 0.0, 0.0, 0.0 }, // BALANCED
-		{ 10.0, 1.0, -8.0, -2.0, 5.0 }, // ATTACKER
-		{ 10.0, 1.0, -12.0, -8.0, 2.0 }, // DEFENDER
-		{ 10.0, 8.0, -3.0, -2.0, 3.0 }, // HOARDER
-		{ 10.0, 0.0, -4.0, -15.0, 1.0 }, // STARVER
-		{ 10.0, 0.0, 0.0, 0.0, 0.0 }, // SELF
-		{ 10.0,  0.0,   0.0,   0.0,  0.0 }, // BOSS
+		{ 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, // BALANCED
+		{ 10.0, 1.0, -8.0, -2.0, 5.0, 8.0, 2.0 }, // ATTACKER
+		{ 10.0, 1.0, -12.0, -8.0, 2.0, 1.0, 0.0 }, // DEFENDER
+		{ 10.0, 8.0, -3.0, -2.0, 3.0, 2.0, 0.0 }, // HOARDER
+		{ 10.0, 0.0, -4.0, -15.0, 1.0, 1.0, 5.0 }, // STARVER
+		{ 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, // SELF
+		{ 10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }, // BOSS
 	};
 	
 	// ===== Profondeur de profil =====
