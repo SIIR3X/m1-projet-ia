@@ -63,51 +63,8 @@ public final class NoNameBot extends CompetitorBot
 	{
 		try (TrainingLogger logger = new TrainingLogger())
 		{
-			
-			
-//			// Création de la configuation pour l'algorithme SPSA
-//			final SPSAConfig config = new SPSAConfig(
-//				    0.602, // alpha : taux de décroissance du gain (learning rate)
-//				    0.101, // gamma : taux de décroissance de la perturbation
-//				    0.4, // a : gain initial (learning rate initial)
-//				    0.5, // c : perturbation initiale
-//				    1700.0, // A : nombre d'itérations avant de commencer à décroître le gain
-//				    4, // nbGamesPerIteration : nombre de parties jouées pour estimer la performance à chaque itération
-//				    5, // trainingDepth : profondeur de recherche utilisée pendant l'entraînement
-//				    LEARN_BUDGET_MS, // learnBudgetMs : budget total pour l'apprentissage en ms
-//				    -50.0, // minWeight : poids minimum pour les paramètres du bot
-//				    50.0  // maxWeight : poids maximum pour les paramètres du bot
-//				);
-//			
-//			// Création de l'évaluateur de bot qui sera utilisé pour estimer la performance du bot pendant l'entraînement
-//	        final BotEvaluator botEvaluator = new BotEvaluator();
-//	        
-//	        GeneticConfig gaConfig = GeneticConfig.defaultConfig();
-//	        GeneticAlgorithm ga = new GeneticAlgorithm(gaConfig, botEvaluator, true);
-//
-//	        
-//	        // Création de l'algorithme SPSA avec la configuration et l'évaluateur
-//	        final SPSA spsa = new SPSA(config);
-//	        
-//	        ga.optimize(BitMinMaxNode.positionEvaluator);
-//	        
-//	        // Lancement de l'optimisation des paramètres du bot avec SPSA
-//	        spsa.optimize(BitMinMaxNode.positionEvaluator, botEvaluator, logger, "ADAPTIVE");
-			
 	        final BotEvaluator botEvaluator = new BotEvaluator();
 
-	        final int n = BitMinMaxNode.positionEvaluator.getNbWeights();
-//	        final CMAESConfig cmaesConfig = new CMAESConfig(
-//	            (20.0 - (-20.0)) / 3.0,  // sigma0 large : exploration globale dès le départ
-//	            4 + (int)(3 * Math.log(n)), // lambda selon Hansen
-//	            (4 + (int)(3 * Math.log(n))) / 2, // mu = lambda/2
-//	            -20.0,
-//	             20.0,
-//	            6,               // nbGamesPerEval
-//	            5,               // trainingDepth
-//	            LEARN_BUDGET_MS, // budget total : ~59 min
-//	            5                // reEvalInterval
-//	        );
 	        double[] initialWeights = BitMinMaxNode.positionEvaluator.getWeights().clone();
 	        double wMin = -20.0, wMax = 20.0;
 	        double sigma0 = (wMax - wMin) / 3.0;
@@ -115,10 +72,10 @@ public final class NoNameBot extends CompetitorBot
 	        CMAESConfig cfg = new CMAESConfig(
 	            initialWeights,
 	            sigma0,
-	            10_000_000L,     // stopEval très grand si tu veux que seul le temps arrête
+	            10_000_000L, 
 	            LEARN_BUDGET_MS,
-	            32,              // nbGamesPerEval
-	            6,               // trainingDepth
+	            32,
+	            6,
 	            wMin,
 	            wMax
 	        );
