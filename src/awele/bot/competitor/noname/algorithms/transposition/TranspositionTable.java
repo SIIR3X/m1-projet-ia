@@ -87,6 +87,8 @@ public final class TranspositionTable
     public void clear()
     {
         generation = 1;
+        java.util.Arrays.fill(keys, 0L);
+        java.util.Arrays.fill(data, 0L);
     }
     
     /**
