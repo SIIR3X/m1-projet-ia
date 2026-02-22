@@ -160,6 +160,7 @@ public abstract class BitMinMaxNode
 				break;
 			}
 
+			final boolean isCapture = board.simulateMoveScore(currentPlayer, i) > 0;
 			final double[] decisionArray = new double[NB_HOLES];
 			decisionArray[i] = 1.0;
 
@@ -167,7 +168,7 @@ public abstract class BitMinMaxNode
 			final int score = copy.playMove(decisionArray);
 
 			// On calcul l'évaluation pour ce coup
-			final double moveEvaluation;
+			double moveEvaluation;
 
 			// On vérifie les conditions de fin de partie
 			final int opponentScore = copy.getScore(1 - copy.getCurrentPlayer());
@@ -176,19 +177,42 @@ public abstract class BitMinMaxNode
 			if (score < 0 || opponentScore >= WINNING_SCORE || totalSeeds <= MIN_SEEDS_TO_CONTINUE)
 				// Fin de partie détectée : évaluation directe
 				moveEvaluation = evaluatePosition(copy);
-			else if (depth < maxDepth) {
-				// Profondeur non atteinte : exploration recursive
-				final BitMinMaxNode child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
+			else if (depth < maxDepth)
+			{
+				// J'applique LMR seulement aux coups tardifs, non capturants
+				final int reduction = (!isCapture ? lmrReduction(depth, moveIndex) : 0);
+				
+				int reducedDepth = depth + reduction + 1;
+				
+				if (reducedDepth > maxDepth)
+					reducedDepth = maxDepth;
+				
+				BitMinMaxNode child = createNextNode(copy, reducedDepth, currentAlpha, currentBeta);
 
 				// Si la recherche a été interrompue dans le noeud fils, on propage
 				// l'interruption vers le haut pour arrêter toute la recherche
-				if (child.interrupted) {
+				if (child.interrupted)
+				{
 					this.interrupted = true;
 					break;
 				}
 
 				moveEvaluation = child.getEvaluation();
-			} else
+				
+				if (reduction > 0 && moveEvaluation > currentAlpha)
+				{
+					child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
+					
+					if (child.interrupted)
+					{
+						this.interrupted = true;
+						break;
+					}
+					
+					moveEvaluation = child.getEvaluation();
+				}
+			}
+			else
 				// Profondeur maximale atteinte : évaluation de la position
 				moveEvaluation = evaluatePosition(copy);
 
@@ -313,6 +337,26 @@ public abstract class BitMinMaxNode
 	private double evaluatePosition(BitBoard board)
 	{
 		return positionEvaluator.evaluate(board, player);
+	}
+	
+	/**
+	 * Calcule la réduction de profondeur pour le LMR (Late Move Reduction) en fonction de la profondeur
+	 * actuelle et de l'index du coup dans l'ordre d'exploration
+	 * @param depth La profondeur actuelle du noeud dans l'arbre de recherche
+	 * @param moveIndex L'index du coup dans l'ordre d'exploration (0 pour le meilleur coup, 1 pour le deuxième meilleur, etc.)
+	 * @return Le nombre de niveaux de profondeur à réduire pour ce coup (0 pour pas de réduction, 1 ou plus pour une réduction)
+	 */
+	private static int lmrReduction(int depth, int moveIndex)
+	{
+		// LMR seulement si on est déjà assez profond et sur un coup tardif
+		if (depth < 3 || moveIndex < 2)
+			return 0;
+		
+		// Progressif : + profond, + tard => + réduction
+		if (depth >= 6 && moveIndex >= 3)
+			return 2;
+		
+		return 1;
 	}
 
 	// ===== Méthodes abstraites =====
