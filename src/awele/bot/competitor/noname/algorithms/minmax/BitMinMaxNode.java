@@ -39,7 +39,7 @@ public abstract class BitMinMaxNode
 	 */
 	public static long maxSearchTime;
 
-	/*
+	/**
 	 * Flag indiquant si le temps est écoulé
 	 */
 	public static volatile boolean timeExpired;
