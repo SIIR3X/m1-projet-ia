@@ -47,17 +47,14 @@ public final class AdaptiveOpponentSelector
 	/**
 	 * Poids caractéristiques de chaque profil
 	 */
-	// { ws,   wk,    wd,    we,   wm,   wlc,  wst }
-	// Poids fait a la va vite,
-	// A revoir
 	private static final double[][] PROFILE_WEIGHTS = {
-		{ 10.0,  1.0,  -2.0,  0.5,  1.5,  2.0,  1.0 }, // BALANCED
-		{ 10.0,  0.5,  -1.0,  0.0,  1.5,  3.5,  1.5 }, // ATTACKER
-		{ 10.0,  1.5,  -4.0,  1.0,  1.0,  0.8,  0.5 }, // DEFENDER
-		{ 10.0,  3.0,  -3.0,  1.0,  0.8,  0.8,  0.3 }, // HOARDER
-		{ 10.0,  0.5,  -2.5,  0.5,  1.0,  1.2,  3.5 }, // STARVER
-		{ 10.0,  1.0,  -2.0,  0.5,  1.5,  2.0,  1.0 }, // SELF : seront écrasés
-		{ 10.0,  1.2,  -2.2,  0.6,  1.6,  2.2,  1.1 }, // BOSS
+		{ 13.0,  1.0,  3.0,  2.0,  1.0,  2.0 }, // BALANCED
+		{ 13.0,  0.5,  3.5,  3.5,  1.5,  3.5 }, // ATTACKER
+		{ 13.0,  1.5,  1.5,  0.8,  0.5,  1.0 }, // DEFENDER
+		{ 13.0,  3.0,  2.0,  0.8,  0.3,  1.0 }, // HOARDER
+		{ 13.0,  0.5,  4.5,  1.2,  3.5,  2.5 }, // STARVER
+		{ 13.0,  1.0,  3.0,  2.0,  1.0,  2.0 }, // SELF
+		{ 13.0,  1.2,  3.2,  2.2,  1.1,  2.1 }, // BOSS
 	};
 	
 	// ===== Profondeur de profil =====
@@ -97,7 +94,7 @@ public final class AdaptiveOpponentSelector
 		1.0, // HOARDER
 		1.0, // STARVER
 		1.0, // SELF
-		3.0, // BOSS (rapporte deux fois plus de points)
+		1.5, // BOSS
 	};
 	
 	// ===== Probabilités initiales =====
@@ -106,11 +103,11 @@ public final class AdaptiveOpponentSelector
 	 * Probabilités initiales d'apparition de chaque profil
 	 */
 	private static final double[] INITIAL_PROBABILITIES = {
-		0.10, // BALANCED
+		0.15, // BALANCED
 		0.20, // ATTACKER
 		0.20, // DEFENDER
 		0.20, // HOARDER
-		0.20, // STARVER
+		0.15, // STARVER
 		0.10, // SELF
 		0.00, // BOSS (toujours présent, mais ne participe pas à la sélection aléatoire)
 	};

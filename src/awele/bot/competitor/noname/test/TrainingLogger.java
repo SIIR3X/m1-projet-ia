@@ -57,16 +57,18 @@ public final class TrainingLogger implements AutoCloseable
     private static final String HEADER_ITERATIONS =
         "iteration,phase,elapsed_ms,ak,ck,score_plus,score_minus,score_diff,window_avg,best_score";
 
+ // Remplacez vos HEADER_WEIGHTS et HEADER_BEST par :
+
     private static final String HEADER_WEIGHTS =
-    	    "iteration,phase," +
-    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_mobility_early,w_latent_early,w_starvation_early," +
-    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_mobility_late,w_latent_late,w_starvation_late";
+        "iteration,phase," +
+        "w_score_early,w_krou_early,w_proximity_to_win_early,w_latent_early,w_starvation_early,w_extra_moves_early," +
+        "w_score_late,w_krou_late,w_proximity_to_win_late,w_latent_late,w_starvation_late,w_extra_moves_late";
 
-    	private static final String HEADER_BEST =
-    	    "iteration,phase,elapsed_ms,best_score," +
-    	    "w_score_early,w_krou_early,w_dangerous_early,w_empty_early,w_mobility_early,w_latent_early,w_starvation_early," +
-    	    "w_score_late,w_krou_late,w_dangerous_late,w_empty_late,w_mobility_late,w_latent_late,w_starvation_late";
-
+    private static final String HEADER_BEST =
+        "iteration,phase,elapsed_ms,best_score," +
+        "w_score_early,w_krou_early,w_proximity_to_win_early,w_latent_early,w_starvation_early,w_extra_moves_early," +
+        "w_score_late,w_krou_late,w_proximity_to_win_late,w_latent_late,w_starvation_late,w_extra_moves_late";
+    
     private static final String HEADER_SUMMARY =
         "phase,nb_iterations,duration_ms,initial_score,final_score,best_score";
 

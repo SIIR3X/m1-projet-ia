@@ -61,28 +61,33 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void learn()
 	{
-		try (TrainingLogger logger = new TrainingLogger())
-		{
+	    try (TrainingLogger logger = new TrainingLogger())
+	    {
 	        final BotEvaluator botEvaluator = new BotEvaluator();
-
-	        double[] initialWeights = BitMinMaxNode.positionEvaluator.getWeights().clone();
-	        double wMin = -20.0, wMax = 20.0;
-	        double sigma0 = (wMax - wMin) / 3.0;
+	        
+	        double wMin = 0.0;
+	        double wMax = 15.0;
+	        
+	        // Par défaut, poids = milieu de l'intervalle [wMin, wMax]
+	        double defaultWeight = wMin + (wMax - wMin) / 2.0;  
+	        double weights[] = new double[12];
+	        for (int i = 0; i < weights.length; i++)
+	        {
+	            weights[i] = defaultWeight;
+	        }
 
 	        CMAESConfig cfg = new CMAESConfig(
-	            initialWeights,
-	            sigma0,
-	            10_000_000L, 
-	            LEARN_BUDGET_MS,
-	            32,
-	            6,
-	            wMin,
-	            wMax
-	        );
-
-	        final CMAES cmaes = new CMAES(cfg, botEvaluator);
+	        		weights,
+	        		1.5,
+	        		10_000_000L,
+	        		LEARN_BUDGET_MS,
+	        		128,
+	        		5,
+	        		wMin, wMax);
+	        
+	        CMAES cmaes = new CMAES(cfg, botEvaluator);
 	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
-		}
+	    }
 	}
 
 	@Override
