@@ -13,19 +13,18 @@ public final class ProximityToWinHeuristic implements PositionHeuristic
 {
 	public static final String ID = "proximity_to_win";
 	
+	private static final int WINNING_SCORE = 25;
+	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
 		// Mon score
 		final long raw = (player == 0) ? board.raw0() : board.raw1();
 		final int score = (int)((raw >> SCORE_OFFSET) & MASK_6_BITS);
+	
+		final int distanceToWin = Math.max(0, WINNING_SCORE - score);
 		
-		// Score de l'adversaire
-		final long opponentRaw = (player == 0) ? board.raw1() : board.raw0();
-		final int opponentScore = (int)((opponentRaw >> SCORE_OFFSET) & MASK_6_BITS);
-		
-		final int scoreDiff = score - opponentScore;
-		return (double)scoreDiff;
+		return -(double)distanceToWin;
 	}
 	
 	@Override

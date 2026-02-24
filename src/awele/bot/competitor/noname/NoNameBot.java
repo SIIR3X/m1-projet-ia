@@ -40,7 +40,7 @@ public final class NoNameBot extends CompetitorBot
 	/**
 	 * Budget total dispobile pour l'apprentissage (en ms)
 	 */
-	private static final long LEARN_BUDGET_MS = 59L * 60L * 1_000L;
+	private static final long LEARN_BUDGET_MS = 55L * 60L * 1_000L;
 	
 	public NoNameBot() throws InvalidBotException
 	{
@@ -69,7 +69,7 @@ public final class NoNameBot extends CompetitorBot
 	        double wMax = 15.0;
 	        
 	        // Par défaut, poids = milieu de l'intervalle [wMin, wMax]
-	        double defaultWeight = wMin + (wMax - wMin) / 2.0;  
+	        double defaultWeight = (wMin + wMax) / 2.0;
 	        double weights[] = new double[12];
 	        for (int i = 0; i < weights.length; i++)
 	        {
