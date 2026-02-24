@@ -19,7 +19,7 @@ public final class ExtraMovesHeuristic implements PositionHeuristic
 		for (int hole = 0; hole < validMoves.length; hole++)
 		{
 			if (!validMoves[hole])
-				extraMovesCount++;
+				continue;
 			
 			final BitBoard copy = board.clone();
 			final double[] decision = new double[6];

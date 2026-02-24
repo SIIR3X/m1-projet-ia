@@ -18,10 +18,10 @@ public final class PositionEvaluator
 	private final ExtraMovesHeuristic extraMovesHeuristic;
 	
 	// Normalisation de la fitness
-	private static final double MAX_SCORE_DIFF = 48.0;
+	private static final double MAX_SCORE_DIFF = 25.0;
 	private static final double MAX_COUNT_DIFF = 6.0;
 	private static final double MAX_PROXIMITY_DIFF = 25.0;
-	private static final double MAX_LATENT_DIFF = 288.0;
+	private static final double MAX_LATENT_DIFF = 48.0;
 	private static final double MAX_STARVATION_DIFF = 12.0;
 	private static final double MAX_EXTRA_MOVES_DIFF = 6.0;
 
