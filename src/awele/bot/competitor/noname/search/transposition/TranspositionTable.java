@@ -201,4 +201,17 @@ public final class TranspositionTable
             default: throw new IllegalStateException("Invalid entry type");
         }
     }
+    
+    public int count()
+    {
+    		int count = 0;
+
+    		for (int i = 0; i < SIZE; i++)
+    		{
+    			if (keys[i] != 0)
+    				count++;
+    		}
+
+    		return count;
+    }
 }
