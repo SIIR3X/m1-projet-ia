@@ -1,15 +1,15 @@
-package awele.bot.competitor.noname.algorithms.minmax;
+package awele.bot.competitor.noname.search.minmax;
 
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.MIN_SEEDS_TO_CONTINUE;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCORE;
 
-import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
-import awele.bot.competitor.noname.algorithms.heuristics.ordering.MoveEvaluator;
-import awele.bot.competitor.noname.algorithms.transposition.EntryType;
-import awele.bot.competitor.noname.algorithms.transposition.TranspositionEntry;
-import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
+import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.ordering.MoveEvaluator;
+import awele.bot.competitor.noname.search.transposition.EntryType;
+import awele.bot.competitor.noname.search.transposition.TranspositionEntry;
+import awele.bot.competitor.noname.search.transposition.TranspositionTable;
 
 /**
  * @author Lucas Fagioli

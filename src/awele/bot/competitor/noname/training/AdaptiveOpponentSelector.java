@@ -1,8 +1,8 @@
-package awele.bot.competitor.noname.algorithms.training.common;
+package awele.bot.competitor.noname.training;
 
 import java.util.Random;
 
-import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 
 /**
  * @author Lucas Fagioli
@@ -48,13 +48,13 @@ public final class AdaptiveOpponentSelector
 	 * Poids caractéristiques de chaque profil
 	 */
 	private static final double[][] PROFILE_WEIGHTS = {
-		{ 13.0,  1.0,  3.0,  2.0,  1.0,  2.0 }, // BALANCED
-		{ 13.0,  0.5,  3.5,  3.5,  1.5,  3.5 }, // ATTACKER
-		{ 13.0,  1.5,  1.5,  0.8,  0.5,  1.0 }, // DEFENDER
-		{ 13.0,  3.0,  2.0,  0.8,  0.3,  1.0 }, // HOARDER
-		{ 13.0,  0.5,  4.5,  1.2,  3.5,  2.5 }, // STARVER
-		{ 13.0,  1.0,  3.0,  2.0,  1.0,  2.0 }, // SELF
-		{ 13.0,  1.2,  3.2,  2.2,  1.1,  2.1 }, // BOSS
+        { 10.0, 8.0, 0.5, 7.0, 5.0, 14.0, 5.0, 3.5, 6.0, 6.0 }, // BALANCED
+        { 9.0, 6.0, 0.8, 5.0, 4.0, 13.0, 4.0, 4.0, 5.0, 5.0 }, // ATTACKER
+        { 9.0, 7.0, 0.2, 9.5, 6.0, 14.0, 4.0, 2.5, 8.0, 7.0 }, // DEFENDER
+        { 8.0, 10.0, 0.3, 6.0, 5.0, 13.0, 7.0, 2.5, 5.0, 6.0 }, // HOARDER
+        { 9.0, 6.0, 0.5, 7.0, 8.0, 14.0, 4.0, 3.0, 6.0, 9.0 }, // STARVER
+        { 8.0, 7.0, 0.3, 6.0, 5.0, 16.0, 3.5, 4.5, 5.0, 6.0 }, // SELF
+        { 9.5, 8.0, 0.5, 7.5, 5.5, 14.5, 5.0, 3.5, 6.5, 6.5 } // BOSS
 	};
 	
 	// ===== Profondeur de profil =====

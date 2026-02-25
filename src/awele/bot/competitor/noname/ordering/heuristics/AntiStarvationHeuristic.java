@@ -1,8 +1,9 @@
-package awele.bot.competitor.noname.algorithms.heuristics.ordering;
+package awele.bot.competitor.noname.ordering.heuristics;
 
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
+import awele.bot.competitor.noname.ordering.MoveHeuristic;
 
 /**
  * @autor Lucas Fagioli

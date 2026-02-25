@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.training.cmaes;
+package awele.bot.competitor.noname.training.cmaes;
 
 /**
  * @author Lucas Fagioli

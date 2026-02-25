@@ -1,14 +1,15 @@
 package awele.bot.competitor.noname;
 
 import awele.bot.CompetitorBot;
-import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
-import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.algorithms.training.cmaes.CMAES;
-import awele.bot.competitor.noname.algorithms.training.cmaes.CMAESConfig;
-import awele.bot.competitor.noname.algorithms.training.common.BotEvaluator;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
+import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.search.minmax.BitMaxNode;
+import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.test.TrainingLogger;
+import awele.bot.competitor.noname.training.BotEvaluator;
+import awele.bot.competitor.noname.training.cmaes.CMAES;
+import awele.bot.competitor.noname.training.cmaes.CMAESConfig;
 import awele.core.Board;
 import awele.core.InvalidBotException;
 
@@ -68,22 +69,14 @@ public final class NoNameBot extends CompetitorBot
 	        double wMin = 0.0;
 	        double wMax = 15.0;
 	        
-	        // Par défaut, poids = milieu de l'intervalle [wMin, wMax]
-	        double defaultWeight = (wMin + wMax) / 2.0;
-	        double weights[] = new double[12];
-	        for (int i = 0; i < weights.length; i++)
-	        {
-	            weights[i] = defaultWeight;
-	        }
-
 	        CMAESConfig cfg = new CMAESConfig(
-	        		weights,
-	        		1.5,
-	        		10_000_000L,
+	        		PositionEvaluator.getDefautltWeights(),
+	        		0.8, // sigma
+	        		10_000_000L, // inutile pour moi
 	        		LEARN_BUDGET_MS,
-	        		128,
-	        		5,
-	        		wMin, wMax);
+	        		128, // nbGames
+	        		5, // depth
+	        		wMin, wMax); // bornes
 	        
 	        CMAES cmaes = new CMAES(cfg, botEvaluator);
 	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");

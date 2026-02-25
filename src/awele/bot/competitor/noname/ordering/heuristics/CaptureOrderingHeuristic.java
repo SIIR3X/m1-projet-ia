@@ -1,6 +1,7 @@
-package awele.bot.competitor.noname.algorithms.heuristics.ordering;
+package awele.bot.competitor.noname.ordering.heuristics;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
+import awele.bot.competitor.noname.ordering.MoveHeuristic;
 
 /**
  * @autor Lucas Fagioli
