@@ -1,14 +1,14 @@
-package awele.bot.competitor.noname.algorithms.training.common;
+package awele.bot.competitor.noname.training;
 
 import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 
 import java.util.Random;
 
-import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
-import awele.bot.competitor.noname.algorithms.minmax.BitMaxNode;
-import awele.bot.competitor.noname.algorithms.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.algorithms.transposition.TranspositionTable;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
+import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.search.minmax.BitMaxNode;
+import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
+import awele.bot.competitor.noname.search.transposition.TranspositionTable;
 
 public final class BotEvaluator
 {

@@ -1,18 +1,18 @@
-package awele.bot.competitor.noname.algorithms.minmax;
+package awele.bot.competitor.noname.search.minmax;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
  * @author Lucas Fagioli
- * Noeud Min : estimation du meilleur coup possible pour l'adversaire
+ * Noeud max : estimation du meilleur coup possible pour le joueur actuel
  */
-public final class BitMinNode extends BitMinMaxNode
+public final class BitMaxNode extends BitMinMaxNode
 {
 	/**
 	 * Constructeur pour un noeud initial (racine)
 	 * @param board La situation de jeu pour laquelle il faut prendre une décision
 	 */
-	public BitMinNode(BitBoard board)
+	public BitMaxNode(BitBoard board)
 	{
 		this(board, 0, -Double.MAX_VALUE, Double.MAX_VALUE);
 	}
@@ -24,7 +24,7 @@ public final class BitMinNode extends BitMinMaxNode
 	 * @param alpha Le seuil pour la coupe alpha
 	 * @param beta Le seuil pour la coupe beta
 	 */
-	public BitMinNode(BitBoard board, int depth, double alpha, double beta)
+	public BitMaxNode(BitBoard board, int depth, double alpha, double beta)
 	{
 		super(board, depth, alpha, beta);
 	}
@@ -32,39 +32,37 @@ public final class BitMinNode extends BitMinMaxNode
 	@Override
 	protected double getWorstScore()
 	{
-		return Double.MAX_VALUE;
+		return -Double.MAX_VALUE;
 	}
 
 	@Override
 	protected double updateEvaluation(double newEval, double currentEval)
 	{
-		return Math.min(newEval, currentEval);
+		return Math.max(newEval, currentEval);
 	}
 
 	@Override
 	protected double updateAlpha(double evaluation, double alpha)
 	{
-		return alpha;
+		return Math.max(evaluation, alpha);
 	}
 
 	@Override
 	protected double updateBeta(double evaluation, double beta)
 	{
-		return Math.min(evaluation, beta);
+		return beta;
 	}
 
 	@Override
 	protected boolean shouldPrune(double evaluation, double alpha, double beta)
 	{
-		return evaluation <= alpha;
+		return evaluation >= beta;
 	}
 
 	@Override
 	protected BitMinMaxNode createNextNode(BitBoard board, int depth, double alpha, double beta)
 	{
-		return new BitMaxNode(board, depth, alpha, beta);
+		return new BitMinNode(board, depth, alpha, beta);
 	}
-
-
 	
 }

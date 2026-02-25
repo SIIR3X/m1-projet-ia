@@ -1,9 +1,12 @@
-package awele.bot.competitor.noname.algorithms.heuristics.ordering;
+package awele.bot.competitor.noname.ordering;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
+import awele.bot.competitor.noname.ordering.heuristics.AntiStarvationHeuristic;
+import awele.bot.competitor.noname.ordering.heuristics.CaptureOrderingHeuristic;
+import awele.bot.competitor.noname.ordering.heuristics.TTMoveHeuristic;
 
 /**
  * @autor Lucas Fagioli

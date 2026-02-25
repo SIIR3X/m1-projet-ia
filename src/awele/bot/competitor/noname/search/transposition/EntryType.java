@@ -1,4 +1,4 @@
-package awele.bot.competitor.noname.algorithms.transposition;
+package awele.bot.competitor.noname.search.transposition;
 
 /**
  * @author Lucas Fagioli

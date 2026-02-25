@@ -1,12 +1,12 @@
-package awele.bot.competitor.noname.algorithms.training.cmaes;
+package awele.bot.competitor.noname.training.cmaes;
 
 import java.util.Arrays;
 import java.util.Random;
 
-import awele.bot.competitor.noname.algorithms.heuristics.evaluation.PositionEvaluator;
-import awele.bot.competitor.noname.algorithms.training.common.AdaptiveOpponentSelector.OpponentProfile;
-import awele.bot.competitor.noname.algorithms.training.common.BotEvaluator;
+import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.test.TrainingLogger;
+import awele.bot.competitor.noname.training.BotEvaluator;
+import awele.bot.competitor.noname.training.AdaptiveOpponentSelector.OpponentProfile;
 
 public final class CMAES
 {
