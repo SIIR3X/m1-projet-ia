@@ -3,13 +3,8 @@ package awele.bot.competitor.noname;
 import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
-import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.search.minmax.BitMaxNode;
 import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.test.TrainingLogger;
-import awele.bot.competitor.noname.training.BotEvaluator;
-import awele.bot.competitor.noname.training.cmaes.CMAES;
-import awele.bot.competitor.noname.training.cmaes.CMAESConfig;
 import awele.core.Board;
 import awele.core.InvalidBotException;
 
@@ -55,32 +50,30 @@ public final class NoNameBot extends CompetitorBot
 	public void initialize()
 	{
 		this.lastDepthReached = 0;
-		
-		BitMinMaxNode.transpositionTable.clear();
 	}
 	
 	@Override
 	public void learn()
 	{
-	    try (TrainingLogger logger = new TrainingLogger())
-	    {
-	        final BotEvaluator botEvaluator = new BotEvaluator();
-	        
-	        double wMin = 0.0;
-	        double wMax = 15.0;
-	        
-	        CMAESConfig cfg = new CMAESConfig(
-	        		PositionEvaluator.getDefautltWeights(),
-	        		0.8, // sigma
-	        		10_000_000L, // inutile pour moi
-	        		LEARN_BUDGET_MS,
-	        		128, // nbGames
-	        		5, // depth
-	        		wMin, wMax); // bornes
-	        
-	        CMAES cmaes = new CMAES(cfg, botEvaluator);
-	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
-	    }
+//	    try (TrainingLogger logger = new TrainingLogger())
+//	    {
+//	        final BotEvaluator botEvaluator = new BotEvaluator();
+//	        
+//	        double wMin = 0.0;
+//	        double wMax = 15.0;
+//	        
+//	        CMAESConfig cfg = new CMAESConfig(
+//	        		PositionEvaluator.getDefautltWeights(),
+//	        		0.8, // sigma
+//	        		10_000_000L, // inutile pour moi
+//	        		LEARN_BUDGET_MS,
+//	        		128, // nbGames
+//	        		5, // depth
+//	        		wMin, wMax); // bornes
+//	        
+//	        CMAES cmaes = new CMAES(cfg, botEvaluator);
+//	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
+//	    }
 	}
 
 	@Override
@@ -88,6 +81,7 @@ public final class NoNameBot extends CompetitorBot
 	{
 		System.out.println(lastDepthReached);
 		System.out.println("VIsite : " + BitMinMaxNode.nodeCount);
+		System.out.println("Hit : " + BitMinMaxNode.transpositionTable.count());
 	}
 
 	@Override

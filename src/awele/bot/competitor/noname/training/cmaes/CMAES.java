@@ -5,8 +5,8 @@ import java.util.Random;
 
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.test.TrainingLogger;
-import awele.bot.competitor.noname.training.BotEvaluator;
 import awele.bot.competitor.noname.training.AdaptiveOpponentSelector.OpponentProfile;
+import awele.bot.competitor.noname.training.BotEvaluator;
 
 public final class CMAES
 {
@@ -152,8 +152,11 @@ public final class CMAES
 		double initialFitness = Double.NEGATIVE_INFINITY;
 		double finalFitness = Double.NEGATIVE_INFINITY;
 		
-		while (counteval < config.stopEval && System.currentTimeMillis() < endTime)
+		while (counteval < config.stopEval)
 		{
+			if (System.currentTimeMillis() >= endTime)
+				break;
+			
 			///
 			/// Générer et évaluer lambda individus
 			///
@@ -162,6 +165,9 @@ public final class CMAES
 			
 			for (int k = 0; k < lambda; k++)
 			{
+				if (System.currentTimeMillis() >= endTime)
+					break;
+				
 				final double[] z = new double[N];
 				for (int i = 0; i < N; i++)
 				{
