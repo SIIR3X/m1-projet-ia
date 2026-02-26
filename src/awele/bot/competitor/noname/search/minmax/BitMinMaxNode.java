@@ -6,6 +6,8 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.WINNING_SCO
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.ordering.CategoryMoveOrdering;
+import awele.bot.competitor.noname.ordering.KillerMoves;
 import awele.bot.competitor.noname.ordering.MoveEvaluator;
 import awele.bot.competitor.noname.search.transposition.EntryType;
 import awele.bot.competitor.noname.search.transposition.TranspositionEntry;
@@ -151,7 +153,7 @@ public abstract class BitMinMaxNode
 		// On utilise le MoveEvaluator pour ordonner les coups par qualité
 		// avant de les explorer
 		final MoveEvaluator moveEvaluator = new MoveEvaluator(ttBestMove);
-		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer);
+		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer, depthRemaining);
 
 		double currentAlpha = alpha;
 		double currentBeta = beta;
@@ -162,6 +164,7 @@ public abstract class BitMinMaxNode
 		// prometteuses en premier
 		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++) {
 			final int i = orderedMoves[moveIndex];
+			final int moveCategory = CategoryMoveOrdering.category(board, currentPlayer, i);
 
 			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2
 			// ou moins),
@@ -233,6 +236,7 @@ public abstract class BitMinMaxNode
 			if (Double.compare(newEval, this.evaluation) != 0) {
 				this.evaluation = newEval;
 				bestMove = i;
+				CategoryMoveOrdering.addScore(moveCategory, Math.max(1, 6 - moveIndex));
 			}
 
 			// Élagage Alpha-Beta
@@ -242,7 +246,15 @@ public abstract class BitMinMaxNode
 
 				// Vérification de la condition de coupe
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
+				{
+					if (MoveEvaluator.ENABLE_CATEGORY_ORDERING)
+						CategoryMoveOrdering.addScore(moveCategory, 5);
+					
+					if (!isCapture && depthRemaining >= 2 && depthRemaining <= 12 && MoveEvaluator.ENABLE_KILLERS)
+						KillerMoves.record(depthRemaining, i);
+					
 					break;
+				}
 			}
 		}
 
@@ -287,6 +299,7 @@ public abstract class BitMinMaxNode
 	{
 		BitMinMaxNode.maxDepth = depth;
 		BitMinMaxNode.player = board.getCurrentPlayer();
+		KillerMoves.initialize(depth);
 	}
 
 	/**

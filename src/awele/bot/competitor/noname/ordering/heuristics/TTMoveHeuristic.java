@@ -9,8 +9,6 @@ import awele.bot.competitor.noname.ordering.MoveHeuristic;
  */
 public final class TTMoveHeuristic implements MoveHeuristic
 {
-	private static final int TT_BONUS = 1_000_000; // Priorité absolue car dans TT
-	
 	private final int ttBestMove;
 	
 	public TTMoveHeuristic(int ttBestMove)
@@ -21,6 +19,6 @@ public final class TTMoveHeuristic implements MoveHeuristic
 	@Override
 	public int evaluate(BitBoard board, int player, int hole)
 	{
-		return (hole == ttBestMove) ? TT_BONUS : 0;
+		return (hole == ttBestMove) ? 1 : 0;
 	}
 }

@@ -64,7 +64,8 @@ public final class CMAES
 		/// Initialisation - Section "Strategy parameter setting: Selection"
 		///
 		// Taille de la population (nb indiv générés a chaque génération)
-		final int lambda = 4 + (int)Math.floor(3 * Math.log(N));
+		//final int lambda = 4 + (int)Math.floor(3 * Math.log(N));
+		final int lambda = 14;
 		
 		// Nombre de parents sélectionnés pour la recombinaison
 		final int mu = lambda / 2;

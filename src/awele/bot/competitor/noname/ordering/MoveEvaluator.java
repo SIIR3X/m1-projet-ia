@@ -15,19 +15,22 @@ import awele.bot.competitor.noname.ordering.heuristics.TTMoveHeuristic;
  */
 public final class MoveEvaluator
 {
+	// ===== Poids ======
+	
+	private static final int W_TT = 1_000_000; // Priorité absolue au coup du TT (0/1)
+	private static final int W_STARVATION = 100_000; // (-1/0/1)
+	private static final int W_CAPTURE = 100; // (NbGraines capturées)
+	private static final int W_CATEGORY = 10; // (score cat)
+	private static final int KILLER_BONUS_1 = 50_000; // Bonus pour le coup killer 1
+	private static final int KILLER_BONUS_2 = 25_000; // Bonus pour le coup killer 2
+	
+	public static boolean ENABLE_CATEGORY_ORDERING = true;
+	public static boolean ENABLE_KILLERS = true;
+	
 	/**
 	 * Liste des heuristiques utilisées pour évaluer les coups
 	 */
 	private final List<MoveHeuristic> heuristics;
-	
-	/**
-	 * Poids associés à chaque heuristique pour le calcul du score global
-	 */
-	private static final int[] WEIGHTS = {
-		1, // TTMoveHeuristic
-		1, // AntiStarvationHeuristic
-		100 // CaptureOrderingHeuristic
-	};
 
 	public MoveEvaluator(int ttBestMove)
 	{
@@ -48,15 +51,11 @@ public final class MoveEvaluator
 	 */
 	public int evaluateMove(BitBoard board, int player, int hole)
 	{
-		int totalScore = 0;
+		final int tt = heuristics.get(0).evaluate(board, player, hole);
+		final int starvation = heuristics.get(1).evaluate(board, player, hole);
+		final int capture = heuristics.get(2).evaluate(board, player, hole);
 		
-		// On applique chaque heuristique et on additionne les scores pondérés
-		for (int i = 0; i < heuristics.size(); i++)
-		{
-			totalScore += heuristics.get(i).evaluate(board, player, hole) * WEIGHTS[i];
-		}
-
-		return totalScore;
+		return (tt * W_TT) + (starvation * W_STARVATION) + (capture * W_CAPTURE);
 	}
 	
 	/**
@@ -65,7 +64,7 @@ public final class MoveEvaluator
 	 * @param player Le numéro du joueur pour lequel on évalue les coups (0 ou 1)
 	 * @return Un tableau de numéros de trous (0 à 5) représentant les coups valides triés par ordre décroissant de qualité
 	 */
-	public int[] orderMoves(BitBoard board, int player)
+	public int[] orderMoves(BitBoard board, int player, int depthRemaining)
 	{
 		final boolean[] validMoves = board.getValidMoves(player);
 		
@@ -80,6 +79,9 @@ public final class MoveEvaluator
 		final int[] moves = new int[validCount];
 		final int[] scores = new int[validCount];
 		
+		final int k0 = KillerMoves.get(depthRemaining, 0);
+		final int k1 = KillerMoves.get(depthRemaining, 1);
+		
 		// On évalue chaque coup valide et on stocke les scores
 		int index = 0;
 		for (int hole = 0; hole < validMoves.length; hole++)
@@ -87,7 +89,27 @@ public final class MoveEvaluator
 			if (validMoves[hole])
 			{
 				moves[index] = hole;
-				scores[index] = evaluateMove(board, player, hole);
+				
+				int score = evaluateMove(board, player, hole);
+				
+				if (ENABLE_CATEGORY_ORDERING)
+				{
+					final int cat = CategoryMoveOrdering.category(board, player, hole);
+					score += CategoryMoveOrdering.score(cat) * W_CATEGORY;
+				}
+				
+				if (ENABLE_KILLERS)
+				{
+					if (depthRemaining >= 2 && depthRemaining <= 12)
+					{
+						if (hole == k0)
+							score += KILLER_BONUS_1;
+						else if (hole == k1)
+							score += KILLER_BONUS_2;
+					}
+				}
+				
+				scores[index] = score;
 				index++;
 			}
 		}

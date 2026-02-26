@@ -14,6 +14,6 @@ public final class CaptureOrderingHeuristic implements MoveHeuristic
 	{
 		final int captured = board.simulateMoveScore(player, hole);
 		
-		return (captured > 0) ? captured: 0;
+		return Math.max(player, captured);
 	}
 }
