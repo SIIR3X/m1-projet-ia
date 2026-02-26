@@ -61,14 +61,14 @@ public final class TrainingLogger implements AutoCloseable
 
     private static final String HEADER_WEIGHTS =
     	    "iteration,phase," +
-    	    "w_score_early,w_mobility_early,w_capture_potential_early,w_anti_capture_early,w_famine_safety_early," +
-    	    "w_score_late,w_mobility_late,w_capture_potential_late,w_anti_capture_late,w_famine_safety_late";
+    	    "w_score_early,w_mobility_early,w_capture_potential_early,w_anti_capture_early,w_famine_safety_early,w_vulnerable_holes_early," +
+    	    "w_score_late,w_mobility_late,w_capture_potential_late,w_anti_capture_late,w_famine_safety_late,w_vulnerable_holes_late";
 
     	// En-tête pour le logging du meilleur poids trouvé
-    	private static final String HEADER_BEST =
+    private static final String HEADER_BEST =
     	    "iteration,phase,elapsed_ms,best_score," +
-    	    "w_score_early,w_mobility_early,w_capture_potential_early,w_anti_capture_early,w_famine_safety_early," +
-    	    "w_score_late,w_mobility_late,w_capture_potential_late,w_anti_capture_late,w_famine_safety_late";
+    	    "w_score_early,w_mobility_early,w_capture_potential_early,w_anti_capture_early,w_famine_safety_early,w_vulnerable_holes_early," +
+    	    "w_score_late,w_mobility_late,w_capture_potential_late,w_anti_capture_late,w_famine_safety_late,w_vulnerable_holes_late";
     
     private static final String HEADER_SUMMARY =
         "phase,nb_iterations,duration_ms,initial_score,final_score,best_score";

@@ -6,6 +6,7 @@ import java.util.Random;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.ordering.CategoryMoveOrdering;
 import awele.bot.competitor.noname.search.minmax.BitMaxNode;
 import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.search.transposition.TwoLevelTranspositionTable;
@@ -148,6 +149,28 @@ public final class BotEvaluator
 	public void updateBestWeights(double[] weights)
 	{
 	    selector.updateBestWeights(weights);
+	}
+	
+	public void trainCategoriesSelfPlay(PositionEvaluator evaluator, int nbGames, int depth)
+	{
+		CategoryMoveOrdering.resetScores();
+		CategoryMoveOrdering.LEARNING_ENABLED = true;
+		
+		for (int game = 0; game < nbGames; game++)
+		{
+			final boolean candidateFirst = (game % 2 == 0);
+			
+			System.out.println("Self-play game " + (game + 1) + "/" + nbGames);
+			
+			playSingleGame(
+				evaluator,
+				evaluator,
+				candidateFirst,
+				depth,
+				depth);
+		}
+		
+		CategoryMoveOrdering.LEARNING_ENABLED = false;
 	}
 		
 	private double playSingleGame(

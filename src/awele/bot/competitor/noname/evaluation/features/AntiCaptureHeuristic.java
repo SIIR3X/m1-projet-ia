@@ -15,23 +15,23 @@ public final class AntiCaptureHeuristic implements PositionHeuristic
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
-		final int opponent = 1 - player;
-		
-		final boolean[] valid = board.getValidMoves(player);
-		int maxCapturedByOpponent = 0;
-		
-		for (int hole = 0; hole < valid.length; hole++)
-		{
-			if (!valid[hole])
-				continue;
-			
-			int capturedByOpponent = board.simulateMoveScore(opponent, hole);
-			if (capturedByOpponent > maxCapturedByOpponent)
-				maxCapturedByOpponent = capturedByOpponent;
-		}
-		
-		// Opposé = risque
-		return -maxCapturedByOpponent;
+	    final int opponent = 1 - player;
+
+	    final boolean[] validOpp = board.getValidMoves(opponent);
+	    int maxCapturedByOpponent = 0;
+
+	    for (int hole = 0; hole < validOpp.length; hole++)
+	    {
+	        if (!validOpp[hole])
+	            continue;
+
+	        int capturedByOpponent = board.simulateMoveScore(opponent, hole);
+	        if (capturedByOpponent > maxCapturedByOpponent)
+	            maxCapturedByOpponent = capturedByOpponent;
+	    }
+
+	    // Opposé = risque (plus l'adversaire peut capturer, pire c'est)
+	    return -maxCapturedByOpponent;
 	}
 	
 	@Override

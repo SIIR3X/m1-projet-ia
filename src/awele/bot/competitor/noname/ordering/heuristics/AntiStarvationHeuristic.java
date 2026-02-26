@@ -12,9 +12,6 @@ import awele.bot.competitor.noname.ordering.MoveHeuristic;
  */
 public final class AntiStarvationHeuristic implements MoveHeuristic
 {
-	private static final int FEEDS_BONUS = 10_000;
-	private static final int STARVES_PENALTY = -100_000;
-
 	@Override
 	public int evaluate(BitBoard board, int player, int hole)
 	{
@@ -28,10 +25,6 @@ public final class AntiStarvationHeuristic implements MoveHeuristic
 		final int seeds = board.getSeeds(player, hole);
 		final int finalPos = hole + seeds;
 		
-		// Le coup nourrit si les graines atteignent le côté adverse
-		if (finalPos >= NB_HOLES)
-			return FEEDS_BONUS;
-		else
-			return STARVES_PENALTY;
+		return (finalPos >= NB_HOLES) ? 1 : 0;
 	}
 }
