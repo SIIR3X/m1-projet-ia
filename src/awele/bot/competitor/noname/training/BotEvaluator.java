@@ -8,7 +8,7 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.search.minmax.BitMaxNode;
 import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
-import awele.bot.competitor.noname.search.transposition.TranspositionTable;
+import awele.bot.competitor.noname.search.transposition.TwoLevelTranspositionTable;
 
 public final class BotEvaluator
 {
@@ -22,12 +22,12 @@ public final class BotEvaluator
 	/**
 	 * Table de transposition du bot candidat
 	 */
-	private final TranspositionTable candidateTT;
+	private final TwoLevelTranspositionTable candidateTT;
 	
 	/**
 	 * Table de transposition de l'adversaire
 	 */
-	private final TranspositionTable opponentTT;
+	private final TwoLevelTranspositionTable opponentTT;
 	
 	/**
 	 * Générateur de nombres aléatoires pour les ouvertures aléatoires
@@ -69,8 +69,8 @@ public final class BotEvaluator
 	public BotEvaluator()
 	{
 		this.selector = new AdaptiveOpponentSelector();
-		this.candidateTT = new TranspositionTable();
-		this.opponentTT = new TranspositionTable();
+	    this.candidateTT = new TwoLevelTranspositionTable(22, 18, true);
+	    this.opponentTT = new TwoLevelTranspositionTable(22, 18, true);
 		this.startBoard = new BitBoard();
 	}
 	
@@ -163,7 +163,7 @@ public final class BotEvaluator
 		opponentTT.clear();
 		playRandomOpening(board, RANDOM_OPENING_PLIES);
 		
-		final TranspositionTable savedTT = BitMinMaxNode.transpositionTable;
+		final TwoLevelTranspositionTable savedTT = BitMinMaxNode.transpositionTable;
 		final PositionEvaluator savedEval = BitMinMaxNode.positionEvaluator;
 		final boolean savedExpired = BitMinMaxNode.timeExpired;
 		final long savedStart = BitMinMaxNode.searchStartTime;

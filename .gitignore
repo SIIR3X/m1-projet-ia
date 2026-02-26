@@ -7,3 +7,4 @@ logs/
 *.py
 images/
 botfischer/
+*.csv

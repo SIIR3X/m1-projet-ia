@@ -9,7 +9,7 @@ import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.ordering.MoveEvaluator;
 import awele.bot.competitor.noname.search.transposition.EntryType;
 import awele.bot.competitor.noname.search.transposition.TranspositionEntry;
-import awele.bot.competitor.noname.search.transposition.TranspositionTable;
+import awele.bot.competitor.noname.search.transposition.TwoLevelTranspositionTable;
 
 /**
  * @author Lucas Fagioli
@@ -48,7 +48,7 @@ public abstract class BitMinMaxNode
 	 * Table de transposition partagée pour stocker les évaluations des positions
 	 * déjà explorées
 	 */
-	public static TranspositionTable transpositionTable = new TranspositionTable();
+	public static TwoLevelTranspositionTable transpositionTable = new TwoLevelTranspositionTable(22, 19, true);
 	
 	/**
 	 * Évaluateur de position partagé pour calculer l'évaluation des positions de jeu
