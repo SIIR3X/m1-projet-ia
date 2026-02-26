@@ -168,9 +168,14 @@ public final class PositionEvaluator
 	 * Retourne les poids par défaut de l'évaluation
 	 * @return Tableau de poids dans l'ordre : score, mobility, capture_potential, anti_capture, famine_safety
 	 */
+//	public static double[] getDefautltWeights()
+//	{
+//        return new double[] { 11, 11, 0, 6, 8, 15, 2, 4, 3, 9 };
+//	}
+//	
 	public static double[] getDefautltWeights()
 	{
-        return new double[] { 11, 11, 0, 6, 8, 15, 2, 4, 3, 9 };
+	    return new double[] { 11.443654, 11.229250, 0.115280, 6.033796, 7.538413, 14.701024, 1.997186, 3.799778, 2.957960, 9.124514 };
 	}
 
 	/**

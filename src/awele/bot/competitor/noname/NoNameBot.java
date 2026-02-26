@@ -80,8 +80,11 @@ public final class NoNameBot extends CompetitorBot
 	public void finish()
 	{
 		System.out.println(lastDepthReached);
-		System.out.println("VIsite : " + BitMinMaxNode.nodeCount);
-		System.out.println("Hit : " + BitMinMaxNode.transpositionTable.count());
+		System.out.println("Visite : " + BitMinMaxNode.nodeCount);
+		System.out.println("TT1: " + BitMinMaxNode.transpositionTable.getPrimaryTable().count()
+		        + " / " + BitMinMaxNode.transpositionTable.getPrimaryTable().size());
+		System.out.println("TT2: " + BitMinMaxNode.transpositionTable.getSecondaryTable().count()
+		        + " / " + BitMinMaxNode.transpositionTable.getSecondaryTable().size());
 	}
 
 	@Override
