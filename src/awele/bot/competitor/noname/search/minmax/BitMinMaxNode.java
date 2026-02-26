@@ -20,6 +20,17 @@ public abstract class BitMinMaxNode
 	// ===== Variables statiques =====
 
 	/**
+	 * Profondeur maximale pour le LMR
+	 */
+	private static final int LMR_MAX_DEPTH = 64;
+	
+	/**
+	 * Table de réduction pour le LMR
+	 * (pré-calculée pour éviter les calculs de log à l'exécution)
+	 */
+	private static final int[][] LMR_TABLE = buildLmrTable();
+	
+	/**
 	 * Numéro de joueur de l'IA (0 ou 1)
 	 */
 	protected static int player;
@@ -180,7 +191,7 @@ public abstract class BitMinMaxNode
 			else if (depth < maxDepth)
 			{
 				// J'applique LMR seulement aux coups tardifs, non capturants
-				final int reduction = (!isCapture ? lmrReduction(depth, moveIndex) : 0);
+				final int reduction = lmrReduction(depthRemaining, moveIndex, isCapture);
 				
 				int reducedDepth = depth + reduction + 1;
 				
@@ -199,7 +210,7 @@ public abstract class BitMinMaxNode
 
 				moveEvaluation = child.getEvaluation();
 				
-				if (reduction > 0 && moveEvaluation > currentAlpha)
+				if (reduction > 0 && moveEvaluation > currentAlpha + 1e-6)
 				{
 					child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
 					
@@ -340,23 +351,65 @@ public abstract class BitMinMaxNode
 	}
 	
 	/**
-	 * Calcule la réduction de profondeur pour le LMR (Late Move Reduction) en fonction de la profondeur
-	 * actuelle et de l'index du coup dans l'ordre d'exploration
-	 * @param depth La profondeur actuelle du noeud dans l'arbre de recherche
-	 * @param moveIndex L'index du coup dans l'ordre d'exploration (0 pour le meilleur coup, 1 pour le deuxième meilleur, etc.)
-	 * @return Le nombre de niveaux de profondeur à réduire pour ce coup (0 pour pas de réduction, 1 ou plus pour une réduction)
+	 * Calcule la réduction de profondeur à appliquer pour un coup donné dans le cadre du LMR
+	 * @param depthRemaining La profondeur restante à explorer pour ce noeud
+	 * @param moveIndex L'index du coup dans l'ordre d'exploration
+	 * @param isCapture Un booléen qui indique si le coup est un coup de capture (score > 0) ou non
+	 * @return La réduction de profondeur à appliquer pour ce coup dans le cadre du LMR
 	 */
-	private static int lmrReduction(int depth, int moveIndex)
+	private static int lmrReduction(int depthRemaining, int moveIndex, boolean isCapture)
 	{
-		// LMR seulement si on est déjà assez profond et sur un coup tardif
-		if (depth < 3 || moveIndex < 2)
-			return 0;
-		
-		// Progressif : + profond, + tard => + réduction
-		if (depth >= 6 && moveIndex >= 3)
-			return 2;
-		
-		return 1;
+	    if (isCapture)
+	        return 0;
+
+	    if (depthRemaining < 3)
+	        return 0;
+
+	    if (moveIndex < 3)
+	        return 0;
+
+	    int d = depthRemaining;
+	    if (d > LMR_MAX_DEPTH)
+	        d = LMR_MAX_DEPTH;
+
+	    int r = LMR_TABLE[d][moveIndex];
+
+	    if (r > depthRemaining - 1)
+	        r = depthRemaining - 1;
+
+	    return r;
+	}
+
+	/**
+	 * Construit la table de réduction pour le LMR en pré-calculant les valeurs
+	 * de réduction en fonction de la profondeur et de l'index du coup
+	 * @return La table de réduction pour le LMR, où LMR_TABLE[d][m]
+	 * 	donne la réduction à appliquer pour un coup d'index m à une profondeur restante d
+	 */
+	private static int[][] buildLmrTable()
+	{
+	    int[][] t = new int[LMR_MAX_DEPTH + 1][NB_HOLES + 1];
+
+	    for (int d = 0; d <= LMR_MAX_DEPTH; d++)
+	    {
+	        for (int m = 0; m <= NB_HOLES; m++)
+	        {
+	            // m = moveIndex (0..5)
+	        		// repri de Stockfish
+	            double ld = Math.log(d + 1.0);
+	            double lm = Math.log(m + 2.0);
+
+	            int r = (int)Math.floor(0.70 * ld * lm - 0.90);
+
+	            if (r < 0)
+	            		r = 0;
+	            if (r > 3)
+	            		r = 3;
+	            t[d][m] = r;
+	        }
+	    }
+
+	    return t;
 	}
 
 	// ===== Méthodes abstraites =====
