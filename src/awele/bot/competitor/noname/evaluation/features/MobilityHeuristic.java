@@ -5,7 +5,7 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 2/5 : mobilité du joueur, c'est à dire le nombre de coups valides disponibles.
+ * Heuristique 2/7 : Différence de mobilité (nombre de coups valides du joueur - nombre de coups valides de l'adversaire)
  */
 public final class MobilityHeuristic implements PositionHeuristic
 {
@@ -14,30 +14,28 @@ public final class MobilityHeuristic implements PositionHeuristic
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
-		return countTrue(board.getValidMoves(player));
+		final int opponent = 1 - player;
+		
+		final boolean[] playerMoves = board.getValidMoves(player);
+		final boolean[] opponentMoves = board.getValidMoves(opponent);
+		
+		int playerMobility = 0;
+		int opponentMobility = 0;
+		
+		for (int i = 0; i < playerMoves.length; i++)
+		{
+			if (playerMoves[i])
+				playerMobility++;
+			if (opponentMoves[i])
+				opponentMobility++;
+		}
+		
+		return playerMobility - opponentMobility;
 	}
 	
 	@Override
 	public String getId()
 	{
 		return ID;
-	}
-	
-	/**
-	 * Compte le nombre de cases valides (true) dans un tableau de booléens
-	 * @param b le tableau de booléens à compter
-	 * @return le nombre de cases valides (true) dans le tableau
-	 */
-	private static int countTrue(boolean[] b)
-	{
-		int count = 0;
-		
-		for (boolean v : b)
-		{
-			if (v)
-				count++;
-		}
-		
-		return count;
 	}
 }

@@ -63,9 +63,9 @@ public final class BotEvaluator
 	private static final double DRAW_BONUS = 100.0;
 	
 	/**
-	 * Nombre de partie contre le profil de boss pour l'évaluation
+	 * Pourcetange contre le boss
 	 */
-	private static final int NB_BOSSE_GAMES = 4;
+	private static final double BOSS_GAME_RATIO = 0.25;
 	
 	public BotEvaluator()
 	{
@@ -113,10 +113,12 @@ public final class BotEvaluator
 		final AdaptiveOpponentSelector.OpponentProfile bossProfile = AdaptiveOpponentSelector.OpponentProfile.BOSS;
 		
 		final PositionEvaluator bossEvaluator = selector.getEvaluator(bossProfile);
-		final int bossDepth = selector.getDepth(bossProfile);
+		final int bossDepth = resolveDepth(bossProfile, depth);
 		final double bossMultiplier = selector.getMultiplier(bossProfile);
 		
-		for (int game = 0; game < NB_BOSSE_GAMES; game++)
+		int nbBossGames = Math.max(2, (int)(nbGames * BOSS_GAME_RATIO));
+		
+		for (int game = 0; game < nbBossGames; game++)
 		{
 			final boolean candidateFirst = (game % 2 == 0);
 			final double gameFitness = playSingleGame(
@@ -151,13 +153,19 @@ public final class BotEvaluator
 	    selector.updateBestWeights(weights);
 	}
 	
-	public void trainCategoriesSelfPlay(PositionEvaluator evaluator, int nbGames, int depth)
+	public void trainCategoriesSelfPlay(PositionEvaluator evaluator, int nbGames, int depth, long maxTimeMs)
 	{
 		CategoryMoveOrdering.resetScores();
 		CategoryMoveOrdering.LEARNING_ENABLED = true;
 		
+		final long startTime = System.currentTimeMillis();
+
 		for (int game = 0; game < nbGames; game++)
 		{
+			final long elapsed = System.currentTimeMillis() - startTime;
+			if (elapsed >= maxTimeMs)
+				break;
+			
 			final boolean candidateFirst = (game % 2 == 0);
 			
 			System.out.println("Self-play game " + (game + 1) + "/" + nbGames);
@@ -322,8 +330,7 @@ public final class BotEvaluator
 	
 	private int resolveDepth(AdaptiveOpponentSelector.OpponentProfile profile, int normalDepth)
 	{
-		final int depth = selector.getDepth(profile);
-		return (depth == AdaptiveOpponentSelector.DYNMIC_DEPTH) ? normalDepth : depth;
+		return selector.resolveDepth(profile, normalDepth);
 	}
 	
 	private int outcomeSign(double gameFitness, double multiplier)

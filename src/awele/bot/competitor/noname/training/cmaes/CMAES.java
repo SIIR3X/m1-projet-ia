@@ -51,339 +51,300 @@ public final class CMAES
 	///
 	
 	public void optimize(
-		PositionEvaluator evaluator,
-		TrainingLogger logger,
-		String phaseName)
-	{		
-		///
-		/// Initialisation - Section "User defined input parameters"
-		///
-		final int N = config.xmean.length;
-		
-		///
-		/// Initialisation - Section "Strategy parameter setting: Selection"
-		///
-		// Taille de la population (nb indiv générés a chaque génération)
-		//final int lambda = 4 + (int)Math.floor(3 * Math.log(N));
-		final int lambda = 14;
-		
-		// Nombre de parents sélectionnés pour la recombinaison
-		final int mu = lambda / 2;
-		
-		// Poids de recombinaison
-		// plus le parent est bon plus il contribue
-		final double[] weights = new double[mu];
-		for (int i = 0; i < mu; i++)
+		    PositionEvaluator evaluator,
+		    TrainingLogger logger,
+		    String phaseName)
 		{
-			weights[i] = Math.log(mu + 0.5) - Math.log(i + 1);
+		    final int N = config.xmean.length;
+
+		    // Taille de la population
+		    final int lambda = 10;
+
+		    // Nombre de parents sélectionnés
+		    final int mu = lambda / 2;
+
+		    // Poids de recombinaison
+		    final double[] weights = new double[mu];
+		    for (int i = 0; i < mu; i++)
+		        weights[i] = Math.log(mu + 0.5) - Math.log(i + 1);
+
+		    double sumWeights = 0.0;
+		    for (double w : weights) sumWeights += w;
+		    for (int i = 0; i < mu; i++) weights[i] /= sumWeights;
+
+		    double sumW = 0.0, sumW2 = 0.0;
+		    for (double w : weights)
+		    {
+		        sumW += w;
+		        sumW2 += w * w;
+		    }
+		    final double mueff = (sumW * sumW) / sumW2;
+
+		    final double cc = (4.0 + mueff / N) / (N + 4.0 + 2.0 * mueff / N);
+		    final double cs = (mueff + 2.0) / (N + mueff + 5.0);
+		    final double c1 = 2.0 / ((N + 1.3) * (N + 1.3) + mueff);
+		    final double cmu = Math.min(
+		        1.0 - c1,
+		        2.0 * (mueff - 2.0 + 1.0 / mueff) / ((N + 2.0) * (N + 2.0) + mueff)
+		    );
+		    final double damps = 1.0 + 2.0 * Math.max(0.0, Math.sqrt((mueff - 1.0) / (N + 1.0)) - 1.0) + cs;
+
+		    final double[] pc = new double[N];
+		    final double[] ps = new double[N];
+
+		    final double[][] B = identityMatrix(N);
+
+		    final double[] D = new double[N];
+		    Arrays.fill(D, 1.0);
+
+		    final double[][] C = identityMatrix(N);
+		    double[][] invsqrtC = identityMatrix(N);
+
+		    long eigeneval = 0;
+
+		    final double chiN = Math.sqrt(N) * (1.0 - 1.0 / (4.0 * N) + 1.0 / (21.0 * N * N));
+
+		    double[] xmean = config.xmean.clone();
+		    double sigma = config.sigma0;
+		    long counteval = 0;
+
+		    final long startTime = System.currentTimeMillis();
+		    final long endTime = startTime + config.timeBudgetMs;
+
+		    double initialFitness = Double.NEGATIVE_INFINITY;
+		    double finalFitness = Double.NEGATIVE_INFINITY;
+
+		    // --- Progress / ETA (throttled) ---
+		    long lastProgressPrint = 0L;
+		    final long progressT0 = startTime;
+		    final long progressEval0 = 0L;
+
+		    while (counteval < config.stopEval)
+		    {
+		        if (System.currentTimeMillis() >= endTime)
+		            break;
+
+		        final double[][] arx = new double[lambda][N];
+		        final double[] arfitness = new double[lambda];
+
+		        int evaluatedThisGen = 0;
+
+		        for (int k = 0; k < lambda; k++)
+		        {
+		            if (System.currentTimeMillis() >= endTime)
+		                break;
+
+		            final double[] z = new double[N];
+		            for (int i = 0; i < N; i++)
+		                z[i] = random.nextGaussian();
+
+		            for (int i = 0; i < N; i++)
+		            {
+		                double sum = 0.0;
+		                for (int j = 0; j < N; j++)
+		                    sum += B[i][j] * D[j] * z[j];
+
+		                arx[k][i] = xmean[i] + sigma * sum;
+		            }
+
+		            clip(arx[k]);
+
+		            final OpponentProfile profile = botEvaluator.sampleProfile(arx[k]);
+		            arfitness[k] = botEvaluator.evaluate(arx[k], config.nbGamesPerEval, config.trainingDepth, profile);
+
+		            counteval++;
+		            evaluatedThisGen = k + 1;
+
+		            // ---- Progress display (every ~250ms) ----
+		            final long now = System.currentTimeMillis();
+		            if (now - lastProgressPrint >= 250 || evaluatedThisGen == lambda || counteval == config.stopEval)
+		            {
+		                lastProgressPrint = now;
+
+		                final double genPct = 100.0 * evaluatedThisGen / lambda;
+		                final double totalPct = 100.0 * counteval / Math.max(1L, config.stopEval);
+
+		                long etaSec = -1;
+		                final long dt = now - progressT0;
+		                final long evalDone = counteval - progressEval0;
+		                if (dt > 0 && evalDone > 0)
+		                {
+		                    final double evalPerSec = evalDone / (dt / 1000.0);
+		                    final long remaining = Math.max(0L, config.stopEval - counteval);
+		                    etaSec = (long)Math.ceil(remaining / Math.max(1e-9, evalPerSec));
+
+		                    System.out.printf(
+		                        "\r[%s] gen=%d %.0f%% (%d/%d) total=%.0f%% (%d/%d) | %.2f eval/s | ETA ~ %ds",
+		                        phaseName, generationCount,
+		                        genPct, evaluatedThisGen, lambda,
+		                        totalPct, counteval, config.stopEval,
+		                        evalPerSec, etaSec
+		                    );
+		                }
+		                else
+		                {
+		                    System.out.printf(
+		                        "\r[%s] gen=%d %.0f%% (%d/%d) total=%.0f%% (%d/%d)",
+		                        phaseName, generationCount,
+		                        genPct, evaluatedThisGen, lambda,
+		                        totalPct, counteval, config.stopEval
+		                    );
+		                }
+		                System.out.flush();
+		                if (evaluatedThisGen == lambda || counteval == config.stopEval)
+		                    System.out.println();
+		            }
+
+		            if (counteval >= config.stopEval)
+		                break;
+		        }
+
+		        if (evaluatedThisGen == 0)
+		            break;
+
+		        // Si on n'a pas évalué tous les individus, on coupe proprement
+		        if (evaluatedThisGen < lambda)
+		        {
+		            // On ne peut pas faire une update CMA-ES correcte sans une population complète
+		            break;
+		        }
+
+		        final int[] arindex = sortedIndiceDescending(arfitness);
+
+		        final double[] xold = xmean.clone();
+
+		        xmean = new double[N];
+		        for (int i = 0; i < mu; i++)
+		        {
+		            final int idx = arindex[i];
+		            for (int j = 0; j < N; j++)
+		                xmean[j] += weights[i] * arx[idx][j];
+		        }
+
+		        final double[] step = new double[N];
+		        for (int i = 0; i < N; i++)
+		            step[i] = (xmean[i] - xold[i]) / sigma;
+
+		        final double[] invsqrtCStep = multiply(invsqrtC, step);
+		        final double csSqrt = Math.sqrt(cs * (2.0 - cs) * mueff);
+		        for (int i = 0; i < N; i++)
+		            ps[i] = (1.0 - cs) * ps[i] + csSqrt * invsqrtCStep[i];
+
+		        final double psNorm = norm(ps);
+		        final boolean hSig =
+		            psNorm / Math.sqrt(1.0 - Math.pow(1.0 - cs, 2.0 * counteval / lambda)) / chiN
+		                < 1.4 + 2.0 / (N + 1.0);
+
+		        final double ccSqrt = Math.sqrt(cc * (2.0 - cc) * mueff);
+		        for (int i = 0; i < N; i++)
+		            pc[i] = (1.0 - cc) * pc[i] + (hSig ? 1.0 : 0.0) * ccSqrt * step[i];
+
+		        final double[][] artmp = new double[N][mu];
+		        for (int i = 0; i < N; i++)
+		        {
+		            for (int k = 0; k < mu; k++)
+		                artmp[i][k] = (arx[arindex[k]][i] - xold[i]) / sigma;
+		        }
+
+		        for (int i = 0; i < N; i++)
+		        {
+		            for (int j = 0; j < N; j++)
+		            {
+		                double rankMu = 0.0;
+		                for (int k = 0; k < mu; k++)
+		                    rankMu += weights[k] * artmp[i][k] * artmp[j][k];
+
+		                final double correction = (hSig ? 0.0 : c1 * cc * (2.0 - cc)) * C[i][j];
+		                C[i][j] = (1.0 - c1 - cmu) * C[i][j] + c1 * (pc[i] * pc[j] + correction) + cmu * rankMu;
+		            }
+		        }
+
+		        sigma = sigma * Math.exp((cs / damps) * (psNorm / chiN - 1.0));
+
+		        if (counteval - eigeneval > lambda / (c1 + cmu) / N / 10.0)
+		        {
+		            eigeneval = counteval;
+
+		            for (int i = 0; i < N; i++)
+		                for (int j = i + 1; j < N; j++)
+		                    C[i][j] = C[j][i];
+
+		            eigenDecomposition(C, B, D);
+
+		            for (int i = 0; i < N; i++)
+		            {
+		                for (int j = 0; j < N; j++)
+		                {
+		                    double sum = 0.0;
+		                    for (int k = 0; k < N; k++)
+		                        sum += B[i][k] * (1.0 / D[k]) * B[j][k];
+		                    invsqrtC[i][j] = sum;
+		                }
+		            }
+		        }
+
+		        double dMin = Double.MAX_VALUE;
+		        double dMax = Double.MIN_VALUE;
+		        for (double d : D)
+		        {
+		            if (d < dMin) dMin = d;
+		            if (d > dMax) dMax = d;
+		        }
+		        if (dMax / dMin > 1e7)
+		            break;
+
+		        final double genBestFitness = arfitness[arindex[0]];
+		        final double genAvgFitness = averageFitness(arfitness);
+
+		        if (generationCount == 0)
+		            initialFitness = genBestFitness;
+		        finalFitness = genBestFitness;
+
+		        if (genBestFitness > bestFitness)
+		        {
+		            bestFitness = genBestFitness;
+		            bestWeights = xmean.clone();
+		            botEvaluator.updateBestWeights(bestWeights);
+
+		            if (logger != null)
+		            {
+		                logger.logBest(
+		                    generationCount, phaseName,
+		                    System.currentTimeMillis() - startTime,
+		                    bestFitness, bestWeights
+		                );
+		            }
+		        }
+
+		        if (logger != null)
+		        {
+		            logger.logIteration(
+		                generationCount, phaseName,
+		                System.currentTimeMillis() - startTime,
+		                sigma,
+		                dMax / Math.max(dMin, 1e-20),
+		                genBestFitness,
+		                genAvgFitness,
+		                bestFitness,
+		                bestFitness,
+		                xmean
+		            );
+		        }
+
+		        generationCount++;
+		    }
+
+		    evaluator.setWeights(bestWeights);
+
+		    if (logger != null)
+		    {
+		        logger.logSummary(
+		            phaseName, generationCount,
+		            System.currentTimeMillis() - startTime,
+		            initialFitness, finalFitness, bestFitness
+		        );
+		    }
 		}
-		double sumWeights = 0.0;
-		for (double w : weights)
-		{
-			sumWeights += w;
-		}
-		for (int i = 0; i < mu; i++)
-		{
-			weights[i] /= sumWeights;
-		}
-		
-		// Variance effective des poids : mesure combien de parents contribuent vraiment à la recombinaison
-		// mueff = mu quand les poids sont uniformes, < mu sinon
-		double sumW = 0.0, sumW2 = 0.0;
-		for (double w : weights)
-		{
-			sumW += w;
-			sumW2 += w * w;
-		}
-		final double mueff = (sumW * sumW) / sumW2;
-		
-		///
-		/// Intialisation - Section "Strategy parameter setting: Adaptation"
-		///
-		// Constante de temps pour l'accumulation du chemin d'évolution de C
-		final double cc = (4.0 + mueff / N) / (N + 4.0 + 2.0 * mueff / N);
-		
-		// Constaet de temps pour l'accumulation du chemin d'évolution de sigma
-		final double cs = (mueff + 2.0) / (N + mueff + 5.0);
-		
-		// Taux d'apprentissage pour la mise à jour rang-1 de C
-		final double c1 = 2.0 / ((N + 1.3) * (N + 1.3) + mueff);
-		
-		// Taux d'apprentissage pour la mise à jour rang-mu de C
-		final double cmu = Math.min(1.0 - c1, 2.0 * (mueff - 2.0 + 1.0 / mueff) / ((N + 2.0) * (N + 2.0) + mueff));
-		
-		// Facteur d'amortissement pour sigma (en général proche de 0)
-		final double damps = 1.0 + 2.0 * Math.max(0.0, Math.sqrt((mueff - 1.0) / (N + 1.0)) - 1.0) + cs;
-		
-		///
-		/// Initialisation - Section "Initialize dynamic strategy parameters"
-		///
-		// Chemins d'évolution pour C et sigma, initialisés à zéro
-		final double[] pc = new double[N]; // chemin d'évolution pour C
-		final double[] ps = new double[N]; // chemin d'évolution pour sigma
-		
-		// définit le système de coordonnées
-		final double[][] B = identityMatrix(N);
-		
-		// contient les écarts-types selon chaque axe propre
-		final double[] D = new double[N];
-		Arrays.fill(D, 1.0);
-		
-		// Matrice de covariance
-		final double[][] C = identityMatrix(N);
-		
-		// C^{-1/2}
-		double[][] invsqrtC = identityMatrix(N);
-		
-		// Compteur d'évaluations depuis la derni_re décomposition propre de C
-		long eigeneval = 0;
-		
-		// ||N(0,I)|| == norm(randn(N,1))
-		final double chiN = Math.sqrt(N) * (1.0 - 1.0 / (4.0 * N) + 1.0 / (21.0 * N * N));
-		
-		///
-		/// Boucle de génération - Section "Generation Loop"
-		///
-		
-		double[] xmean = config.xmean.clone();
-		double sigma = config.sigma0;
-		long counteval = 0;
-		final long startTime = System.currentTimeMillis();
-		final long endTime = startTime + config.timeBudgetMs;
-		double initialFitness = Double.NEGATIVE_INFINITY;
-		double finalFitness = Double.NEGATIVE_INFINITY;
-		
-		while (counteval < config.stopEval)
-		{
-			if (System.currentTimeMillis() >= endTime)
-				break;
-			
-			///
-			/// Générer et évaluer lambda individus
-			///
-			final double[][] arx = new double[lambda][N]; // individus non transformés
-			final double[] arfitness = new double[lambda]; // leurs fitness
-			
-			for (int k = 0; k < lambda; k++)
-			{
-				if (System.currentTimeMillis() >= endTime)
-					break;
-				
-				final double[] z = new double[N];
-				for (int i = 0; i < N; i++)
-				{
-					z[i] = random.nextGaussian();
-				}
-				
-				for (int i = 0; i < N; i++)
-				{
-					double sum = 0.0;
-					for (int j = 0; j < N; j++)
-					{
-						sum += B[i][j] * D[j] * z[j];
-					}
-					arx[k][i] = xmean[i] + sigma * sum;
-				}
-				
-				clip(arx[k]);
-				
-				final OpponentProfile profile = botEvaluator.sampleProfile(arx[k]);
-				arfitness[k] = botEvaluator.evaluate(arx[k], config.nbGamesPerEval, config.trainingDepth, profile);
-				counteval++;
-			}
-			
-			///
-			/// Tri par fitness et calcul de la nouvelle moyenne xmean
-			///
-			final int[] arindex = sortedIndiceDescending(arfitness);
-			
-			
-			final double[] xold = xmean.clone();
-			
-			xmean = new double[N];
-			for (int i = 0; i < mu; i++)
-			{
-				for (int j = 0; j < N; j++)
-				{
-					xmean[j] += weights[i] * arx[arindex[i]][j];
-				}
-			}
-			
-			///
-			/// Accumulation : mettre à jour les chemins d'évolution
-			///
-			// D éplacement de la moyenne normalisé par sigma
-			final double[] step = new double[N];
-			for (int i = 0; i < N; i++)
-			{
-				step[i] = (xmean[i] - xold[i]) / sigma;
-			}
-			
-			// Mise à jour du chemin ps
-			// ps = (1 - cs) * ps + sqrt(cs * (2 - cs) * mueff) * C^{-1/2} * step
-			final double[] invsqrtCStep = multiply(invsqrtC, step);
-			final double csSqrt = Math.sqrt(cs * (2.0 - cs) * mueff);
-			for (int i = 0; i < N; i++)
-			{
-				ps[i] = (1.0 - cs) * ps[i] + csSqrt * invsqrtCStep[i];
-			}
-			
-			final double psNorm = norm(ps);
-			//final double hSigThreshold = (1.4 + 2.0 / (N + 1.0)) * chiN;
-			final boolean hSig = psNorm / Math.sqrt(1.0 - Math.pow(1.0 - cs, 2.0 * counteval / lambda)) / chiN < 1.4 + 2.0 / (N + 1.0);
-			
-			final double ccSqrt = Math.sqrt(cc * (2.0 - cc) * mueff);
-			for (int i = 0; i < N; i++)
-			{
-			    pc[i] = (1.0 - cc) * pc[i] + (hSig ? 1.0 : 0.0) * ccSqrt * step[i];
-			}
-			
-			///
-			/// Adapter la matrice de covariance C
-			///
-			final double[][] artmp = new double[N][mu];
-			for (int i = 0; i < N; i++)
-			{
-				for (int k = 0; k < mu; k++)
-				{
-					artmp[i][k] = (arx[arindex[k]][i] - xold[i]) / sigma;
-				}
-			}
-			
-//			for (int i = 0; i < N; i++)
-//			{
-//				for (int j = 0; j < N; j++)
-//				{
-//					C[i][j] = (1.0 - c1 - cmu) * C[i][j] + c1 * (pc[i] * pc[j] + (1.0 - hSig) * cc * (2.0 - cc) * C[i][j]);
-//					
-//					for (int k = 0; k < mu; k++)
-//					{
-//						C[i][j] += cmu * weights[k] * artmp[i][k] * artmp[j][k];
-//					}
-//				}
-			
-			for (int i = 0; i < N; i++)
-			{
-				for (int j = 0; j < N; j++)
-				{
-					double rankMu = 0.0;
-					for (int k = 0; k < mu; k++)
-					{
-						rankMu += weights[k] * artmp[i][k] * artmp[j][k];
-					}
-					
-					final double correction = (hSig ? 0.0 : c1 * cc * (2.0 - cc)) * C[i][j];
-					
-					C[i][j] = (1.0 - c1 - cmu) * C[i][j] + c1 * (pc[i] * pc[j] + correction) + cmu * rankMu;
-				}
-			}
-			
-			///
-			/// Adapter le step size sigma
-			///
-			sigma = sigma * Math.exp((cs / damps) * (psNorm / chiN - 1.0));
-			
-			///
-			/// Décomposition propre de C en B*diag(D.^2)*B' (diagonalization)
-			///
-			if (counteval - eigeneval > lambda / (c1 + cmu) / N / 10.0)
-			{
-				eigeneval = counteval;
-				
-				for (int i = 0; i < N; i++)
-				{
-					for (int j = i + 1; j < N; j++)
-					{
-						C[i][j] = C[j][i];
-					}
-				}
-				
-				// Décomposition propre : C = B*diag(D.^2)*B'
-				// Voir la section "Décomposition par la méthode de Jacobi" plus bas pour l'implémentation de eigenDecomposition
-				// Basé sur https://en.wikipedia.org/wiki/Jacobi_eigenvalue_algorithm
-				eigenDecomposition(C, B, D);
-				
-				for (int i = 0; i < N; i++)
-				{
-					for (int j = 0; j < N; j++)
-					{
-						double sum = 0.0;
-						
-						for (int k = 0; k < N; k++)
-						{
-							sum += B[i][k] * (1.0 / D[k]) * B[j][k];
-						}
-						invsqrtC[i][j] = sum;
-					}
-				}
-			}
-			
-			///
-			/// Critère d'arrêt'
-			///
-			double dMin = Double.MAX_VALUE, dMax = Double.MIN_VALUE;
-			
-			for (double d : D)
-			{
-				if (d < dMin)
-				{
-					dMin = d;
-				}
-				if (d > dMax)
-				{
-					dMax = d;
-				}
-			}
-			
-			if (dMax / dMin > 1e7)
-				break;
-			
-			final double genBestFitness = arfitness[arindex[0]];
-			final double genAvgFitness = averageFitness(arfitness);
-			
-			if (generationCount == 0)
-				initialFitness = genBestFitness;
-			finalFitness = genBestFitness;
-			
-			if (genBestFitness > bestFitness)
-			{
-				bestFitness = genBestFitness;
-				bestWeights = xmean.clone();
-				botEvaluator.updateBestWeights(bestWeights);
-				
-                if (logger != null)
-                    logger.logBest(
-                        generationCount, phaseName,
-                        System.currentTimeMillis() - startTime,
-                        bestFitness, bestWeights);
-			}
-			if (logger != null)
-			{
-				logger.logIteration(
-	               generationCount, phaseName,
-	               System.currentTimeMillis() - startTime,
-	               sigma,
-	               dMax / Math.max(dMin, 1e-20),
-	               genBestFitness,
-	               genAvgFitness,
-	               bestFitness,
-	               bestFitness,
-	               xmean);
-			}
-			
-			generationCount++;
-		}
-		
-		evaluator.setWeights(bestWeights);
-		
-		if (logger != null)
-		{
-            logger.logSummary(
-                    phaseName, generationCount,
-                    System.currentTimeMillis() - startTime,
-                    initialFitness, finalFitness, bestFitness);
-		}
-	}
 	
 	
 	///
