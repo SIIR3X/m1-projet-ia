@@ -5,8 +5,7 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 5/5 : sécurité face à la famine, c'est à dire le nombre de coups valides qui permettraient
- * à l'adversaire de nous affamer (avoir 0 graines au début de son tour).
+ * Heuristique 3/7 : Sécurité face à la famine
  */
 public final class FamineSafetyHeuristic implements PositionHeuristic
 {

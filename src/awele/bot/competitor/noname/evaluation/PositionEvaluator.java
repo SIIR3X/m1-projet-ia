@@ -1,12 +1,13 @@
 package awele.bot.competitor.noname.evaluation;
 
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
-import awele.bot.competitor.noname.evaluation.features.AntiCaptureHeuristic;
-import awele.bot.competitor.noname.evaluation.features.CapturePotentialHeuristic;
+import awele.bot.competitor.noname.evaluation.features.CaptureValueHeuristic;
+import awele.bot.competitor.noname.evaluation.features.EndgameProximityHeuristic;
+import awele.bot.competitor.noname.evaluation.features.ExtraMovesPotentialHeuristic;
 import awele.bot.competitor.noname.evaluation.features.FamineSafetyHeuristic;
 import awele.bot.competitor.noname.evaluation.features.MobilityHeuristic;
 import awele.bot.competitor.noname.evaluation.features.ScoreDifferenceHeuristic;
-import awele.bot.competitor.noname.evaluation.features.VulnerableHolesHeuristic;
+import awele.bot.competitor.noname.evaluation.features.SeedControlHeuristic;
 
 /**
  * @author Lucas Fagioli
@@ -16,25 +17,27 @@ public final class PositionEvaluator
 {
 	// ===== Heuristiques utilisées =====
 	
-    private final ScoreDifferenceHeuristic scoreDifferenceHeuristic;
-    private final MobilityHeuristic mobilityHeuristic;
-    private final CapturePotentialHeuristic capturePotentialHeuristic;
-    private final AntiCaptureHeuristic antiCaptureHeuristic;
-    private final FamineSafetyHeuristic famineSafetyHeuristic;
-    private final VulnerableHolesHeuristic vulnerableHolesHeuristic;
+	private final ScoreDifferenceHeuristic scoreDiffHeuristic;
+	private final MobilityHeuristic mobilityHeuristic;
+	private final CaptureValueHeuristic captureValueHeuristic;
+	private final FamineSafetyHeuristic famineSafetyHeuristic;
+	private final SeedControlHeuristic seedControlHeuristic;
+	private final EndgameProximityHeuristic endgameProximityHeuristic;
+	private final ExtraMovesPotentialHeuristic extraMovesHeuristic;
 	
 	// Normalisation de la fitness
-    private static final double MAX_SCORE_DIFF = 25.0;
-    private static final double MAX_MOBILITY_DIFF = 6.0;
-    private static final double MAX_CAPTURE_POT_DIFF = 6.0;
-    private static final double MAX_ANTI_CAPTURE_DIFF = 18.0;
-    private static final double MAX_FAMINE_THREATS_DIFF = 6.0;
-    private static final double MAX_VULNERABLE_HOLES_DIFF = 12.0;
+	private static final double MAX_SCORE_DIFF = 25.0;
+	private static final double MAX_MOBILITY_DIFF = 6.0;
+	private static final double MAX_CAPTURE_VALUE_DIFF = 30.0;
+	private static final double MAX_FAMINE_THREATS_DIFF = 6.0;
+	private static final double MAX_SEED_CONTROL_DIFF = 24.0;
+	private static final double MAX_ENDGAME_PROXIMITY = 15.0;
+	private static final double MAX_EXTRA_MOVES_DIFF = 6.0;  
 
 	/**
 	 * Nombre d'heuristiques utilisées, pour validation des poids
 	 */
-	private static final int N = 6;
+	private static final int N = 7;
 	
 	/**
 	 * Poids pour chaque heuristique en début de partie (early + mid)
@@ -50,12 +53,13 @@ public final class PositionEvaluator
 	 * Identifiants des heuristiques dans l'ordre d'évaluation, pour sérialisation des poids
 	 */
 	public static final String[] WEIGHT_IDS = {
-        ScoreDifferenceHeuristic.ID,
-        MobilityHeuristic.ID,
-        CapturePotentialHeuristic.ID,
-        AntiCaptureHeuristic.ID,
-        FamineSafetyHeuristic.ID,
-        VulnerableHolesHeuristic.ID
+		ScoreDifferenceHeuristic.ID,
+		MobilityHeuristic.ID,
+		CaptureValueHeuristic.ID,
+		FamineSafetyHeuristic.ID,
+		SeedControlHeuristic.ID,
+		EndgameProximityHeuristic.ID,
+		ExtraMovesPotentialHeuristic.ID
 	};
 	
 	/**
@@ -68,16 +72,17 @@ public final class PositionEvaluator
 	
 	/**
 	 * Constructeur avec poids personnalisés
-	 * @param weights Poids dans l'ordre : score, mobility, capture_potential, anti_capture, famine_safety
+	 * @param weights Poids dans l'ordre
 	 */
 	public PositionEvaluator(double[] weights)
 	{
-        this.scoreDifferenceHeuristic = new ScoreDifferenceHeuristic();
-        this.mobilityHeuristic = new MobilityHeuristic();
-        this.capturePotentialHeuristic = new CapturePotentialHeuristic();
-        this.antiCaptureHeuristic = new AntiCaptureHeuristic();
-        this.famineSafetyHeuristic = new FamineSafetyHeuristic();
-        this.vulnerableHolesHeuristic = new VulnerableHolesHeuristic();
+		this.scoreDiffHeuristic = new ScoreDifferenceHeuristic();
+		this.mobilityHeuristic = new MobilityHeuristic();
+		this.captureValueHeuristic = new CaptureValueHeuristic();
+		this.famineSafetyHeuristic = new FamineSafetyHeuristic();
+		this.seedControlHeuristic = new SeedControlHeuristic();
+		this.endgameProximityHeuristic = new EndgameProximityHeuristic();
+		this.extraMovesHeuristic = new ExtraMovesPotentialHeuristic();
 		
 		setWeights(weights);
 	}
@@ -90,52 +95,51 @@ public final class PositionEvaluator
 	 */
 	public double evaluate(BitBoard board, int player)
 	{
-	    final int opponent = 1 - player;
 	    final double phase = computePhase(board);
 
-	    // phase: 0.0 => early, 1.0 => late
-	    final double ws  = (1.0 - phase) * wEarly[0] + phase * wLate[0];
-	    final double wm  = (1.0 - phase) * wEarly[1] + phase * wLate[1];
-	    final double wcp = (1.0 - phase) * wEarly[2] + phase * wLate[2];
-	    final double wac = (1.0 - phase) * wEarly[3] + phase * wLate[3];
-	    final double wfs = (1.0 - phase) * wEarly[4] + phase * wLate[4];
-	    final double wvh = phase * wEarly[5] + (1.0 - phase) * wLate[5];
-
-	    double scoreDiff = scoreDifferenceHeuristic.evaluate(board, player) - scoreDifferenceHeuristic.evaluate(board, opponent);
-	    double mobilityDiff = mobilityHeuristic.evaluate(board, player) - mobilityHeuristic.evaluate(board, opponent);
-	    double capturePotDiff = capturePotentialHeuristic.evaluate(board, player) - capturePotentialHeuristic.evaluate(board, opponent);
-	    double antiCaptureDiff = antiCaptureHeuristic.evaluate(board, player) - antiCaptureHeuristic.evaluate(board, opponent);
-	    double famineSafetyDiff = famineSafetyHeuristic.evaluate(board, player) - famineSafetyHeuristic.evaluate(board, opponent);
-	    double vulnerableDiff = vulnerableHolesHeuristic.evaluate(board, player) - vulnerableHolesHeuristic.evaluate(board, opponent);
-	    
-	    scoreDiff /= MAX_SCORE_DIFF;
-	    mobilityDiff /= MAX_MOBILITY_DIFF;
-	    capturePotDiff /= MAX_CAPTURE_POT_DIFF;
-	    antiCaptureDiff /= MAX_ANTI_CAPTURE_DIFF;
-	    famineSafetyDiff /= MAX_FAMINE_THREATS_DIFF;
-	    vulnerableDiff /= MAX_VULNERABLE_HOLES_DIFF;
-
-	    scoreDiff = clamp11(scoreDiff);
-	    mobilityDiff = clamp11(mobilityDiff);
-	    capturePotDiff = clamp11(capturePotDiff);
-	    antiCaptureDiff = clamp11(antiCaptureDiff);
-	    famineSafetyDiff = clamp11(famineSafetyDiff);
-	    vulnerableDiff = clamp11(vulnerableDiff);
-
-	    double total = 0.0;
-	    total += ws  * scoreDiff;
-	    total += wm  * mobilityDiff;
-	    total += wcp * capturePotDiff;
-	    total += wac * antiCaptureDiff;
-	    total += wfs * famineSafetyDiff;
-	    total += wvh * vulnerableDiff;
-
-	    return total;
+		// Interpole les poids selon la phase
+		final double w0 = lerp(wEarly[0], wLate[0], phase);
+		final double w1 = lerp(wEarly[1], wLate[1], phase);
+		final double w2 = lerp(wEarly[2], wLate[2], phase);
+		final double w3 = lerp(wEarly[3], wLate[3], phase);
+		final double w4 = lerp(wEarly[4], wLate[4], phase);
+		final double w5 = lerp(wEarly[5], wLate[5], phase);
+		final double w6 = lerp(wEarly[6], wLate[6], phase);
+		
+		// Évaluation des heuristiques
+		double scoreDiff = scoreDiffHeuristic.evaluate(board, player);
+		double mobilityDiff = mobilityHeuristic.evaluate(board, player);
+		double captureValueDiff = captureValueHeuristic.evaluate(board, player);
+		double famineSafetyDiff = famineSafetyHeuristic.evaluate(board, player);
+		double seedControlDiff = seedControlHeuristic.evaluate(board, player);
+		double endgameProximity = endgameProximityHeuristic.evaluate(board, player);
+		double extraMovesDiff = extraMovesHeuristic.evaluate(board, player);
+		
+		// Normalise dans [-1, 1]
+		scoreDiff = clamp11(scoreDiff / MAX_SCORE_DIFF);
+		mobilityDiff = clamp11(mobilityDiff / MAX_MOBILITY_DIFF);
+		captureValueDiff = clamp11(captureValueDiff / MAX_CAPTURE_VALUE_DIFF);
+		famineSafetyDiff = clamp11(famineSafetyDiff / MAX_FAMINE_THREATS_DIFF);
+		seedControlDiff = clamp11(seedControlDiff / MAX_SEED_CONTROL_DIFF);
+		endgameProximity = clamp11(endgameProximity / MAX_ENDGAME_PROXIMITY);
+		extraMovesDiff = clamp11(extraMovesDiff / MAX_EXTRA_MOVES_DIFF);
+		
+		// Somme pondérée
+		double total = 0.0;
+		total += w0 * scoreDiff;
+		total += w1 * mobilityDiff;
+		total += w2 * captureValueDiff;
+		total += w3 * famineSafetyDiff;
+		total += w4 * seedControlDiff;
+		total += w5 * endgameProximity;
+		total += w6 * extraMovesDiff;
+		
+		return total;
 	}
 
 	/**
 	 * Retourne une copie du tableau des poids actuels de l'évaluation
-	 * @return Tableau de poids dans l'ordre : score, mobility, capture_potential, anti_capture, famine_safety
+	 * @return Tableau de poids dans l'ordre
 	 */
 	public double[] getWeights()
 	{
@@ -174,43 +178,28 @@ public final class PositionEvaluator
 	
 	/**
 	 * Retourne les poids par défaut de l'évaluation
-	 * @return Tableau de poids dans l'ordre : score, mobility, capture_potential, anti_capture, famine_safety
-	 */
-//	public static double[] getDefautltWeights()
-//	{
-//	    return new double[] {
-//	        10.0, 7.0, 0.0, 9.0, 4.0, 3.0,
-//	        14.0, 4.0, 8.0, 3.0, 9.0, 0.0
-//	    };
-//	}
-	
-	public static double[] getDefautltWeights()
-	{
-	    return new double[] {
-	        9.992806,
-	        6.930767,
-	        0.328353,
-	        8.097604,
-	        4.045515,
-	        2.832918,
-	        13.320186,
-	        4.421464,
-	        4.046637,
-	        1.827088
-	    };
-	}
-
-	/**
-	 * Retourne les poids par défaut de l'évaluation pour un évaluateur sensible à la phase de jeu
-	 * @return Tableau de poids dans l'ordre : score, mobility, capture_potential, anti_capture, famine_safety
+	 * @return Tableau de poids dans l'ordre
 	 */
 	public static double[] getDefaultPhaseAwareWeights()
 	{
-		final double[] w = getDefautltWeights();
-		
 		return new double[] {
-			w[0], w[1], w[2], w[3], w[4], w[5],
-			w[0], w[1], w[2], w[3], w[4], w[5]
+			// Early game weights
+			10.0,  // ScoreDifference - toujours dominant
+			7.0,   // Mobility - important pour la flexibilité
+			5.0,   // CaptureValue - modéré
+			8.0,   // FamineSafety - critique pour ne pas perdre
+			3.0,   // SeedControl - mineur
+			1.0,   // EndgameProximity - quasi-ignoré (pas encore en endgame)
+			4.0,   // ExtraMoves - utile pour construire des avantages
+			
+			// Late game weights
+			14.0,  // ScoreDifference - TRÈS dominant
+			4.0,   // Mobility - réduit (moins important)
+			7.0,   // CaptureValue - augmente (captures décisives)
+			5.0,   // FamineSafety - réduit mais toujours important
+			1.0,   // SeedControl - quasi-ignoré (peu de graines restantes)
+			8.0,   // EndgameProximity - crucial pour finir la partie
+			3.0    // ExtraMoves - modéré
 		};
 	}
 	
@@ -226,10 +215,17 @@ public final class PositionEvaluator
 	    final int START_SEEDS = 48;
 	    final int END_SEEDS = 12;
 
-	    // 0.0 au début (48), 1.0 en fin (<=12)
 	    final double phase = (double)(START_SEEDS - totalSeeds) / (double)(START_SEEDS - END_SEEDS);
 
 	    return clamp01(phase);
+	}
+	
+	/**
+	 * Interpolation linéaire
+	 */
+	private static double lerp(double a, double b, double t)
+	{
+		return a + (b - a) * t;
 	}
 	
 	/**

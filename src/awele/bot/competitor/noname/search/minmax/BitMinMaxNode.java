@@ -160,6 +160,9 @@ public abstract class BitMinMaxNode
 		final boolean isRootNode = (depth == 0);
 		int bestMove = -1;
 		
+		// Flag pour éviter de pénaliser deux fois les mêmes coups
+		boolean alreadyPenalized = false;
+
 		// On parcours les coups ordonnés pour explorer les branches les plus
 		// prometteuses en premier
 		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++) {
@@ -235,8 +238,19 @@ public abstract class BitMinMaxNode
 			final double newEval = updateEvaluation(moveEvaluation, this.evaluation);
 			if (Double.compare(newEval, this.evaluation) != 0) {
 				this.evaluation = newEval;
-				bestMove = i;
+				
+				// Pénalisation des coups explorés avant celui-ci
+				for (int j = 0; j < moveIndex; j++)
+				{
+					final int previousHole = orderedMoves[j];
+					final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
+					CategoryMoveOrdering.removeScore(previousCat, 1);
+				}
+				
 				CategoryMoveOrdering.addScore(moveCategory, Math.max(1, 6 - moveIndex));
+				
+				bestMove = i;
+				alreadyPenalized = true;
 			}
 
 			// Élagage Alpha-Beta
@@ -247,6 +261,18 @@ public abstract class BitMinMaxNode
 				// Vérification de la condition de coupe
 				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
 				{
+					// Pénalisation des coups explorés avant la coupe
+					// seulement si pas déjà fait lors de l'amélioration
+					if (!alreadyPenalized)
+					{
+						for (int j = 0; j < moveIndex; j++)
+						{
+							final int previousHole = orderedMoves[j];
+							final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
+							CategoryMoveOrdering.removeScore(previousCat, 1);
+						}
+					}
+					
 					if (MoveEvaluator.ENABLE_CATEGORY_ORDERING)
 						CategoryMoveOrdering.addScore(moveCategory, 5);
 					
@@ -256,6 +282,9 @@ public abstract class BitMinMaxNode
 					break;
 				}
 			}
+			
+			// Réinitialisation du flag pour le prochain coup
+			alreadyPenalized = false;
 		}
 
 		if (!this.interrupted)

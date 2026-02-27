@@ -47,41 +47,16 @@ public final class AdaptiveOpponentSelector
 	/**
 	 * Poids caractéristiques de chaque profil
 	 */
-	private static final double[][] PROFILE_WEIGHTS = {
-		    { 10.0, 8.0, 0.5, 7.0, 5.0, 8.0,   14.0, 5.0, 3.5, 6.0, 6.0, 5.0 }, // BALANCED
-		    {  9.0, 6.0, 0.8, 5.0, 4.0, 6.0,   13.0, 4.0, 4.0, 5.0, 5.0, 4.0 }, // ATTACKER
-		    {  9.0, 7.0, 0.2, 9.5, 6.0, 9.0,   14.0, 4.0, 2.5, 8.0, 7.0, 6.0 }, // DEFENDER
-		    {  8.0,10.0, 0.3, 6.0, 5.0,10.0,   13.0, 7.0, 2.5, 5.0, 6.0, 6.0 }, // HOARDER
-		    {  9.0, 6.0, 0.5, 7.0, 8.0, 7.0,   14.0, 4.0, 3.0, 6.0, 9.0, 6.0 }, // STARVER
-		    {  8.0, 7.0, 0.3, 6.0, 5.0, 8.0,   16.0, 3.5, 4.5, 5.0, 6.0, 5.0 }, // SELF
-		    {  9.5, 8.0, 0.5, 7.5, 5.5, 8.0,   14.5, 5.0, 3.5, 6.5, 6.5, 5.0 }  // BOSS
-		};
-	
-	// ===== Profondeur de profil =====
-	
-	/**
-	 * Sentinelle indiquant que la profondeur effective est celle passée à l'évaluateur
-	 */
-	public static final int DYNMIC_DEPTH = -1;
-	
-	/**
-	 * Profondeur de recherche pour le profil BOSS
-	 */
-	public static final int BOSS_DEPTH = 8;
-	
-	/**
-	 * Profondeur de recherche pour chaque profil
-	 */
-	private static final int[] PROFILE_DEPTHS = {
-		DYNMIC_DEPTH, // BALANCED
-		DYNMIC_DEPTH, // ATTACKER
-		DYNMIC_DEPTH, // DEFENDER
-		DYNMIC_DEPTH, // HOARDER
-		DYNMIC_DEPTH, // STARVER
-		DYNMIC_DEPTH, // SELF
-		BOSS_DEPTH,   // BOSS
+	public static final double[][] PROFILE_WEIGHTS = {
+	    {10.0, 7.0, 5.0, 8.0, 3.0, 1.0, 4.0, 14.0, 4.0, 7.0, 5.0, 1.0, 8.0, 3.0},
+	    {8.0, 4.0, 15.0, 3.0, 1.0, 0.0, 7.0,  12.0, 2.0, 18.0, 2.0, 0.0, 5.0, 6.0},
+	    {9.0, 8.0, 2.0, 15.0, 8.0, 0.0, 2.0,  14.0, 5.0, 3.0, 12.0, 5.0, 10.0, 1.0},
+	    {8.0, 5.0, 4.0, 7.0, 2.0, 3.0, 4.0,  18.0, 2.0, 8.0, 4.0, 0.5, 15.0, 2.0},
+	    {8.0, 15.0, 4.0, 6.0, 2.0, 0.0, 8.0,  12.0, 10.0, 5.0, 4.0, 0.5, 6.0, 7.0},
+	    {10.0, 8.0, 4.0, 8.0, 3.0, 0.5, 5.0, 15.0, 3.0, 8.0, 6.0, 0.5, 9.0, 3.0}, // Sera écrasé
+	    {10.0, 7.0, 5.5, 8.5, 3.5, 1.0, 4.5,  14.5, 4.5, 7.5, 5.5, 1.0, 8.5, 3.5}
 	};
-	
+
 	// ===== Multiplicateur de fitness =====
 	
 	/**
@@ -103,32 +78,37 @@ public final class AdaptiveOpponentSelector
 	 * Probabilités initiales d'apparition de chaque profil
 	 */
 	private static final double[] INITIAL_PROBABILITIES = {
-		0.15, // BALANCED
-		0.20, // ATTACKER
-		0.20, // DEFENDER
-		0.20, // HOARDER
-		0.15, // STARVER
-		0.10, // SELF
-		0.00, // BOSS (toujours présent, mais ne participe pas à la sélection aléatoire)
+	    1.0/6, // BALANCED
+	    1.0/6, // ATTACKER
+	    1.0/6, // DEFENDER
+	    1.0/6, // HOARDER
+	    1.0/6, // STARVER
+	    1.0/6, // SELF
+	    0.00,  // BOSS (toujours présent séparément)
 	};
 	
 	/**
 	 * Probabilité minimale garantie pour chaque profil
 	 * (ca évite de perdre complètement la trace d'un adversaire potentiel et de l'oublier)
 	 */
-	private static final double EPSILON = 0.05;
+	private static final double EPSILON = 0.01;
 	
 	/**
 	 * Taille de la fenêtre
 	 */
-	private static final int WIN_RATE_WINDOW = 20;
+	private static final int WIN_RATE_WINDOW = 50;
+	
+	/**
+	 * Profondeur min du boss
+	 */
+	private static final int BOSS_MIN_DEPTH = 8;
 	
 	// ===== Variables internes =====
 	
 	private final int nbProfiles;
 	private final double[] probabilities;
 	private final double[][] winRateWindow;
-	private final int[] winRateIntex;
+	private final int[] winRateIndex;
 	private final double[] winRateSum;
 	private final int[] winRateCount;
 	private final PositionEvaluator[] evaluators;
@@ -140,7 +120,7 @@ public final class AdaptiveOpponentSelector
 		this.nbProfiles = OpponentProfile.values().length;
 		this.probabilities = INITIAL_PROBABILITIES.clone();
 		this.winRateWindow = new double[nbProfiles][WIN_RATE_WINDOW];
-		this.winRateIntex = new int[nbProfiles];
+		this.winRateIndex = new int[nbProfiles];
 		this.winRateSum = new double[nbProfiles];
 		this.winRateCount = new int[nbProfiles];
 		this.evaluators = new PositionEvaluator[nbProfiles];
@@ -177,10 +157,10 @@ public final class AdaptiveOpponentSelector
 		final int index = profile.ordinal();
 		final double outcome = (result + 1.0) / 2.0;
 		
-		winRateSum[index] -= winRateWindow[index][winRateIntex[index]];
-		winRateWindow[index][winRateIntex[index]] = outcome;
+		winRateSum[index] -= winRateWindow[index][winRateIndex[index]];
+		winRateWindow[index][winRateIndex[index]] = outcome;
 		winRateSum[index] += outcome;
-		winRateIntex[index] = (winRateIntex[index] + 1) % WIN_RATE_WINDOW;
+		winRateIndex[index] = (winRateIndex[index] + 1) % WIN_RATE_WINDOW;
 		
 		if (winRateCount[index] < WIN_RATE_WINDOW)
 			winRateCount[index]++;
@@ -193,9 +173,12 @@ public final class AdaptiveOpponentSelector
 		return evaluators[profile.ordinal()];
 	}
 	
-	public int getDepth(OpponentProfile profile)
+	public int resolveDepth(OpponentProfile profile, int candidateDepth)
 	{
-		return PROFILE_DEPTHS[profile.ordinal()];
+		if (profile == OpponentProfile.BOSS)
+			return Math.max(BOSS_MIN_DEPTH, candidateDepth + 1);
+		
+		return candidateDepth;
 	}
 	
 	public double getMultiplier(OpponentProfile profile)

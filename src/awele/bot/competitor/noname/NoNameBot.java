@@ -39,9 +39,14 @@ public final class NoNameBot extends CompetitorBot
 	// ===== Constantes d'entraînement =====
 	
 	/**
-	 * Budget total dispobile pour l'apprentissage (en ms)
+	 * Temps pour apprendre les poids
 	 */
-	private static final long LEARN_BUDGET_MS = 5005L * 60L * 1_000L;
+	private static final long LEARN_WEIGHTS_MS = 45L * 60L * 1_000L;
+	
+	/**
+	 * Temps pour apprendre les catégories
+	 */
+	private static final long LEARN_CATEGORIES_MS = 10L * 60L * 1_000L;
 	
 	public NoNameBot() throws InvalidBotException
 	{
@@ -67,20 +72,22 @@ public final class NoNameBot extends CompetitorBot
 	        double wMin = 0.0;
 	        double wMax = 15.0;
 	        
+	        // Phase 1 : poids
 	        CMAESConfig cfg = new CMAESConfig(
-	        		PositionEvaluator.getDefautltWeights(),
-	        		0.9, // sigma
+	        		PositionEvaluator.getDefaultPhaseAwareWeights(),
+	        		0.6, // sigma
 	        		10_000_000L, // inutile pour moi
-	        		LEARN_BUDGET_MS,
-	        		16, // nbGames
+	        		LEARN_WEIGHTS_MS,
+	        		12, // nbGames
 	        		7, // depth
 	        		wMin, wMax); // bornes
 	        
 	        CMAES cmaes = new CMAES(cfg, botEvaluator);
-	        //cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
+	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
 	        
+	        // Phase 2 : catégories
 	        final PositionEvaluator evaluator = BitMinMaxNode.positionEvaluator;
-	        botEvaluator.trainCategoriesSelfPlay(evaluator, 500, 7);
+	        botEvaluator.trainCategoriesSelfPlay(evaluator, 500, 7, LEARN_CATEGORIES_MS);
 	    }
 	}
 

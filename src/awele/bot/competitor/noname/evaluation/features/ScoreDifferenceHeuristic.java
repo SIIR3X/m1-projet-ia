@@ -5,8 +5,7 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 1/5 : score (graines capturées) du joueur.
- * Dans PositionEvaluator, on prend joueur - adversaire.
+ * Heuristique 1/7 : Différence de score (score du joueur - score de l'adversaire)
  */
 public final class ScoreDifferenceHeuristic implements PositionHeuristic
 {
@@ -15,7 +14,7 @@ public final class ScoreDifferenceHeuristic implements PositionHeuristic
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
-		return board.getScore(player);
+		return board.getScore(player) - board.getScore(1 - player);
 	}
 	
 	@Override
