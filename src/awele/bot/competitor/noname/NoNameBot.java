@@ -4,6 +4,7 @@ import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
+import awele.bot.competitor.noname.ordering.PositionHistory;
 import awele.bot.competitor.noname.search.minmax.BitMaxNode;
 import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.test.TrainingLogger;
@@ -33,7 +34,7 @@ public final class NoNameBot extends CompetitorBot
 	private static final int MIN_DEPTH = 0;
 	
 	// ===== Variables d'instance =====
-	
+
 	private int lastDepthReached;
 	
 	// ===== Constantes d'entraînement =====
@@ -83,98 +84,90 @@ public final class NoNameBot extends CompetitorBot
 	        		wMin, wMax); // bornes
 	        
 	        CMAES cmaes = new CMAES(cfg, botEvaluator);
-	        cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
+	        //cmaes.optimize(BitMinMaxNode.positionEvaluator, logger, "CMAES");
 	        
 	        // Phase 2 : catégories
 	        final PositionEvaluator evaluator = BitMinMaxNode.positionEvaluator;
-	        botEvaluator.trainCategoriesSelfPlay(evaluator, 500, 7, LEARN_CATEGORIES_MS);
+	        //botEvaluator.trainCategoriesSelfPlay(evaluator, 500, 7, LEARN_CATEGORIES_MS);
 	    }
 	}
 
 	@Override
 	public void finish()
 	{
-		System.out.println(lastDepthReached);
-		System.out.println("Visite : " + BitMinMaxNode.nodeCount);
-		System.out.println("TT1: " + BitMinMaxNode.transpositionTable.getPrimaryTable().count()
-		        + " / " + BitMinMaxNode.transpositionTable.getPrimaryTable().size());
-		System.out.println("TT2: " + BitMinMaxNode.transpositionTable.getSecondaryTable().count()
-		        + " / " + BitMinMaxNode.transpositionTable.getSecondaryTable().size());
+	    System.out.println("=== FINAL STATISTICS ===");
+	    System.out.println("Depth reached: " + lastDepthReached);
+	    System.out.println("Nodes visited: " + BitMinMaxNode.nodeCount);
+	    System.out.println("Nodes/sec: " + (BitMinMaxNode.nodeCount * 1000 / 98) + "k");
+	    System.out.println("TT1: " + BitMinMaxNode.transpositionTable.getPrimaryTable().count()
+	            + " / " + BitMinMaxNode.transpositionTable.getPrimaryTable().size()
+	            + " (" + (100 * BitMinMaxNode.transpositionTable.getPrimaryTable().count() 
+	                     / BitMinMaxNode.transpositionTable.getPrimaryTable().size()) + "%)");
+	    System.out.println("TT2: " + BitMinMaxNode.transpositionTable.getSecondaryTable().count()
+	            + " / " + BitMinMaxNode.transpositionTable.getSecondaryTable().size());
+	    System.out.println("Position history max: " + PositionHistory.maxSize());
+	    System.out.println("Repetitions detected: " + PositionHistory.getRepetitionsDetected());
+
 	}
 
 	@Override
 	public double[] getDecision(Board board)
 	{
-		BitMinMaxNode.nodeCount = 0;
-		
-		// On convertit le Board classique en BitBoard pour utiliser nos algorithmes optimisés
-		final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
+	    BitMinMaxNode.nodeCount = 0;
+	    
+	    final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
 
-		// Si c'est le premier coup, on joue a droite (très bon coup d'ouverture) sans faire de recherche pour économiser du temps
-		if (bitBoard.isFirstMove())
-		{
-			this.lastDepthReached = 0;
-			double[] opening = new double[6];
-			opening[5] = 1.0;
-			return opening;
-		}
-			
-		BitMinMaxNode.transpositionTable.incrementAge();
+	    // Premier coup : joue à droite (coup d'ouverture fort)
+	    if (bitBoard.isFirstMove())
+	    {
+	        this.lastDepthReached = 0;
+	        double[] opening = new double[6];
+	        opening[5] = 1.0;
+	        return opening;
+	    }
+	    
+	    // Préparation de la recherche
+	    BitMinMaxNode.transpositionTable.incrementAge();
+	    BitMinMaxNode.startTimer(MAX_TIME_MS);
+	    
+	    // Reset de l'historique (UNE SEULE FOIS avant toute la recherche)
+	    PositionHistory.clear();
+	    
+	    double[] bestDecision = null;
+	    int depthReached = 0;
+	    
+	    // Iterative Deepening : profondeur croissante jusqu'à timeout
+	    for (int depth = 1; depth <= MAX_DEPTH; depth++)
+	    {
+	        if (depth > MIN_DEPTH && BitMinMaxNode.isTimeExpired())
+	            break;
+	        
+	        BitMinMaxNode.initialize(bitBoard, depth);
+	        
+	        BitMaxNode rootNode = new BitMaxNode(bitBoard);
+	        
+	        if (rootNode.isInterrupted())
+	            break;
+	        
+	        bestDecision = rootNode.getDecision();
+	        depthReached = depth;
+	        
+	        if (depth >= MAX_DEPTH || BitMinMaxNode.isTimeExpired())
+	            break;
+	    }
+	    
+	    this.lastDepthReached = depthReached;
+	    BitMinMaxNode.resetTimer();
+	    
+	    // Fallback si aucune décision trouvée
+	    if (bestDecision == null)
+	    {
+	        BitMinMaxNode.initialize(bitBoard, 1);
+	        bestDecision = new BitMaxNode(bitBoard).getDecision();
+	        this.lastDepthReached = 1;
+	    }
 
-		// On lance le timer
-		BitMinMaxNode.startTimer(MAX_TIME_MS);
-		
-		// Variables pour la recherche itérative
-		double[] bestDecision = null;
-		double[] currentDecision;
-		int depthReached = 0;
-		
-		// Recherche itérative prograssive (iterative deepening)
-		// On commence à profondeur 1 et on augmente jusqu'à ce que le temps soit écoulé
-		for (int depth = 1; depth <= MAX_DEPTH; depth++)
-		{
-			// On s'assure d'avoir au moins exploré MIN_DEPTH
-			if (depth > MIN_DEPTH && BitMinMaxNode.isTimeExpired())
-				break;
-			
-			// On initialise l'algorithme pour cette profondeur
-			BitMinMaxNode.initialize(bitBoard, depth);
-			
-			// On crée un BitMaxNode pour le BitBoard actuel et on récupère la décision à partir de ce noeud
-			BitMaxNode rootNode = new BitMaxNode(bitBoard);
-			
-			// Si la recherche a été interrompue, on garde le résultat de la profondeur précédente
-			if (rootNode.isInterrupted())
-				break;
-			
-			// La recherche s'est terminée complètement pour cette profondeur
-			currentDecision = rootNode.getDecision();
-			bestDecision = currentDecision;
-			depthReached = depth;
-			
-			// Si on atteint la profondeur maximale, on arrête
-			if (depth >= MAX_DEPTH)
-				break;
-			
-			// On vérifie une dernière fois le temps
-			if (BitMinMaxNode.isTimeExpired())
-				break;
-		}
-		
-		this.lastDepthReached = depthReached;
-
-		// On reset le timer
-		BitMinMaxNode.resetTimer();
-		
-		// Si aucune décision d'a été trouvée on fait une recherche minimale à profondeur 1
-		if (bestDecision == null)
-		{
-			BitMinMaxNode.initialize(bitBoard, 1);
-			bestDecision = new BitMaxNode(bitBoard).getDecision();
-			this.lastDepthReached = 1;
-		}
-
-		return bestDecision;
+	    return bestDecision;
 	}
 	
 	public int getLastDepthReached()

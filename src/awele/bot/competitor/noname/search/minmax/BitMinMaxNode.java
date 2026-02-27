@@ -9,6 +9,7 @@ import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.ordering.CategoryMoveOrdering;
 import awele.bot.competitor.noname.ordering.KillerMoves;
 import awele.bot.competitor.noname.ordering.MoveEvaluator;
+import awele.bot.competitor.noname.ordering.PositionHistory;
 import awele.bot.competitor.noname.search.transposition.EntryType;
 import awele.bot.competitor.noname.search.transposition.TranspositionEntry;
 import awele.bot.competitor.noname.search.transposition.TwoLevelTranspositionTable;
@@ -97,209 +98,203 @@ public abstract class BitMinMaxNode
 	 */
 	public BitMinMaxNode(BitBoard board, int depth, double alpha, double beta)
 	{
-		nodeCount++;
-		
-		this.decision = new double[NB_HOLES];
-		this.interrupted = false;
-		this.evaluation = getWorstScore();
+	    nodeCount++;
+	    
+	    this.decision = new double[NB_HOLES];
+	    this.interrupted = false;
+	    this.evaluation = getWorstScore();
 
-		if (depth > 0 && isTimeExpired()) {
-			this.interrupted = true;
-			return;
-		}
+	    final long currentKey = board.ttKey();
+	    PositionHistory.push(currentKey);
+	    
+	    try
+	    {
+	        if (depth > 0 && isTimeExpired())
+	        {
+	            this.interrupted = true;
+	            return;
+	        }
 
-		// Ici on garde la fenêtre originale pour déterminer le flag TT en sortie
-		final double alpha0 = alpha;
-		final double beta0 = beta;
+	        final double alpha0 = alpha;
+	        final double beta0 = beta;
+	        final int depthRemaining = Math.max(0, maxDepth - depth);
+	        final long key = board.ttKey();
+	        final TranspositionEntry tt = transpositionTable.probe(key);
 
-		// Profondeur restante
-		final int depthRemaining = Math.max(0, maxDepth - depth);
+	        if (tt != null && tt.depth >= depthRemaining)
+	        {
+	            switch (tt.type)
+	            {
+	                case EXACT:
+	                    if (depth > 0)
+	                    {
+	                        this.evaluation = tt.evaluation;
+	                        return;
+	                    }
+	                    break;
 
-		final long key = board.ttKey();
-		final TranspositionEntry tt = transpositionTable.probe(key);
+	                case LOWER_BOUND:
+	                    alpha = Math.max(alpha, tt.evaluation);
+	                    break;
 
-		if (tt != null && tt.depth >= depthRemaining) {
-			switch (tt.type) {
-			case EXACT:
-				// Hors racine : retour immédiat
-				if (depth > 0) {
-					this.evaluation = tt.evaluation;
-					return;
-				}
-				break;
+	                case UPPER_BOUND:
+	                    beta = Math.min(beta, tt.evaluation);
+	                    break;
 
-			case LOWER_BOUND:
-				alpha = Math.max(alpha, tt.evaluation);
-				break;
+	                default:
+	                    break;
+	            }
 
-			case UPPER_BOUND:
-				beta = Math.min(beta, tt.evaluation);
-				break;
+	            if (alpha >= beta && depth > 0)
+	            {
+	                this.evaluation = tt.evaluation;
+	                return;
+	            }
+	        }
 
-			default:
-				break;
-			}
+	        final int currentPlayer = board.getCurrentPlayer();
+	        int ttBestMove = (tt != null && tt.bestMove >= 0 && tt.bestMove < NB_HOLES) ? tt.bestMove : -1;
 
-			if (alpha >= beta && depth > 0) {
-				this.evaluation = tt.evaluation;
-				return;
-			}
-		}
+	        final MoveEvaluator moveEvaluator = new MoveEvaluator(ttBestMove);
+	        int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer, depthRemaining);
+	        
+	        double currentAlpha = alpha;
+	        double currentBeta = beta;
+	        final boolean isRootNode = (depth == 0);
+	        int bestMove = -1;
+	        boolean alreadyPenalized = false;
 
-		final int currentPlayer = board.getCurrentPlayer();
-		
-		int ttBestMove = (tt != null && tt.bestMove >= 0 && tt.bestMove < NB_HOLES) ? tt.bestMove : -1;
+	        for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++)
+	        {
+	            final int i = orderedMoves[moveIndex];
+	            final int moveCategory = CategoryMoveOrdering.category(board, currentPlayer, i);
 
-		// On utilise le MoveEvaluator pour ordonner les coups par qualité
-		// avant de les explorer
-		final MoveEvaluator moveEvaluator = new MoveEvaluator(ttBestMove);
-		int[] orderedMoves = moveEvaluator.orderMoves(board, currentPlayer, depthRemaining);
+	            if (depth <= 2 && isTimeExpired())
+	            {
+	                this.interrupted = true;
+	                break;
+	            }
 
-		double currentAlpha = alpha;
-		double currentBeta = beta;
-		final boolean isRootNode = (depth == 0);
-		int bestMove = -1;
-		
-		// Flag pour éviter de pénaliser deux fois les mêmes coups
-		boolean alreadyPenalized = false;
+	            final boolean isCapture = board.simulateMoveScore(currentPlayer, i) > 0;
+	            final double[] decisionArray = new double[NB_HOLES];
+	            decisionArray[i] = 1.0;
 
-		// On parcours les coups ordonnés pour explorer les branches les plus
-		// prometteuses en premier
-		for (int moveIndex = 0; moveIndex < orderedMoves.length; moveIndex++) {
-			final int i = orderedMoves[moveIndex];
-			final int moveCategory = CategoryMoveOrdering.category(board, currentPlayer, i);
+	            final BitBoard copy = board.clone();
+	            final int score = copy.playMove(decisionArray);
 
-			// Si le temps de recherche est écoulé à une profondeur critique (profondeur 2
-			// ou moins),
-			// on interrompt la recherche pour éviter de dépasser le temps imparti
-			if (depth <= 2 && isTimeExpired()) {
-				this.interrupted = true;
-				break;
-			}
+	            double moveEvaluation;
 
-			final boolean isCapture = board.simulateMoveScore(currentPlayer, i) > 0;
-			final double[] decisionArray = new double[NB_HOLES];
-			decisionArray[i] = 1.0;
+	            final int opponentScore = copy.getScore(1 - copy.getCurrentPlayer());
+	            final int totalSeeds = copy.getTotalSeeds(0) + copy.getTotalSeeds(1);
 
-			final BitBoard copy = board.clone();
-			final int score = copy.playMove(decisionArray);
+	            if (score < 0 || opponentScore >= WINNING_SCORE || totalSeeds <= MIN_SEEDS_TO_CONTINUE)
+	            {
+	                moveEvaluation = evaluatePosition(copy);
+	            }
+	            else if (depth < maxDepth)
+	            {
+	                final int reduction = lmrReduction(depthRemaining, moveIndex, isCapture);
+	                int reducedDepth = depth + reduction + 1;
+	                
+	                if (reducedDepth > maxDepth)
+	                    reducedDepth = maxDepth;
+	                
+	                BitMinMaxNode child = createNextNode(copy, reducedDepth, currentAlpha, currentBeta);
 
-			// On calcul l'évaluation pour ce coup
-			double moveEvaluation;
+	                if (child.interrupted)
+	                {
+	                    this.interrupted = true;
+	                    break;
+	                }
 
-			// On vérifie les conditions de fin de partie
-			final int opponentScore = copy.getScore(1 - copy.getCurrentPlayer());
-			final int totalSeeds = copy.getTotalSeeds(0) + copy.getTotalSeeds(1);
+	                moveEvaluation = child.getEvaluation();
+	                
+	                if (reduction > 0 && moveEvaluation > currentAlpha + 1e-6)
+	                {
+	                    child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
+	                    
+	                    if (child.interrupted)
+	                    {
+	                        this.interrupted = true;
+	                        break;
+	                    }
+	                    
+	                    moveEvaluation = child.getEvaluation();
+	                }
+	            }
+	            else
+	            {
+	                moveEvaluation = evaluatePosition(copy);
+	            }
 
-			if (score < 0 || opponentScore >= WINNING_SCORE || totalSeeds <= MIN_SEEDS_TO_CONTINUE)
-				// Fin de partie détectée : évaluation directe
-				moveEvaluation = evaluatePosition(copy);
-			else if (depth < maxDepth)
-			{
-				// J'applique LMR seulement aux coups tardifs, non capturants
-				final int reduction = lmrReduction(depthRemaining, moveIndex, isCapture);
-				
-				int reducedDepth = depth + reduction + 1;
-				
-				if (reducedDepth > maxDepth)
-					reducedDepth = maxDepth;
-				
-				BitMinMaxNode child = createNextNode(copy, reducedDepth, currentAlpha, currentBeta);
+	            this.decision[i] = moveEvaluation;
 
-				// Si la recherche a été interrompue dans le noeud fils, on propage
-				// l'interruption vers le haut pour arrêter toute la recherche
-				if (child.interrupted)
-				{
-					this.interrupted = true;
-					break;
-				}
+	            final double newEval = updateEvaluation(moveEvaluation, this.evaluation);
+	            if (Double.compare(newEval, this.evaluation) != 0)
+	            {
+	                this.evaluation = newEval;
+	                
+	                for (int j = 0; j < moveIndex; j++)
+	                {
+	                    final int previousHole = orderedMoves[j];
+	                    final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
+	                    CategoryMoveOrdering.removeScore(previousCat, 1);
+	                }
+	                
+	                CategoryMoveOrdering.addScore(moveCategory, Math.max(1, 6 - moveIndex));
+	                
+	                bestMove = i;
+	                alreadyPenalized = true;
+	            }
 
-				moveEvaluation = child.getEvaluation();
-				
-				if (reduction > 0 && moveEvaluation > currentAlpha + 1e-6)
-				{
-					child = createNextNode(copy, depth + 1, currentAlpha, currentBeta);
-					
-					if (child.interrupted)
-					{
-						this.interrupted = true;
-						break;
-					}
-					
-					moveEvaluation = child.getEvaluation();
-				}
-			}
-			else
-				// Profondeur maximale atteinte : évaluation de la position
-				moveEvaluation = evaluatePosition(copy);
+	            if (!isRootNode)
+	            {
+	                currentAlpha = updateAlpha(this.evaluation, currentAlpha);
+	                currentBeta = updateBeta(this.evaluation, currentBeta);
 
-			this.decision[i] = moveEvaluation;
+	                if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
+	                {
+	                    if (!alreadyPenalized)
+	                    {
+	                        for (int j = 0; j < moveIndex; j++)
+	                        {
+	                            final int previousHole = orderedMoves[j];
+	                            final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
+	                            CategoryMoveOrdering.removeScore(previousCat, 1);
+	                        }
+	                    }
+	                    
+	                    if (MoveEvaluator.ENABLE_CATEGORY_ORDERING)
+	                        CategoryMoveOrdering.addScore(moveCategory, 5);
+	                    
+	                    if (!isCapture && depthRemaining >= 2 && depthRemaining <= 12 && MoveEvaluator.ENABLE_KILLERS)
+	                        KillerMoves.record(depthRemaining, i);
+	                    
+	                    break;
+	                }
+	            }
+	            
+	            alreadyPenalized = false;
+	        }
 
-			final double newEval = updateEvaluation(moveEvaluation, this.evaluation);
-			if (Double.compare(newEval, this.evaluation) != 0) {
-				this.evaluation = newEval;
-				
-				// Pénalisation des coups explorés avant celui-ci
-				for (int j = 0; j < moveIndex; j++)
-				{
-					final int previousHole = orderedMoves[j];
-					final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
-					CategoryMoveOrdering.removeScore(previousCat, 1);
-				}
-				
-				CategoryMoveOrdering.addScore(moveCategory, Math.max(1, 6 - moveIndex));
-				
-				bestMove = i;
-				alreadyPenalized = true;
-			}
+	        if (!this.interrupted)
+	        {
+	            final EntryType type;
 
-			// Élagage Alpha-Beta
-			if (!isRootNode) {
-				currentAlpha = updateAlpha(this.evaluation, currentAlpha);
-				currentBeta = updateBeta(this.evaluation, currentBeta);
+	            if (this.evaluation <= alpha0)
+	                type = EntryType.UPPER_BOUND;
+	            else if (this.evaluation >= beta0)
+	                type = EntryType.LOWER_BOUND;
+	            else
+	                type = EntryType.EXACT;
 
-				// Vérification de la condition de coupe
-				if (shouldPrune(this.evaluation, currentAlpha, currentBeta))
-				{
-					// Pénalisation des coups explorés avant la coupe
-					// seulement si pas déjà fait lors de l'amélioration
-					if (!alreadyPenalized)
-					{
-						for (int j = 0; j < moveIndex; j++)
-						{
-							final int previousHole = orderedMoves[j];
-							final int previousCat = CategoryMoveOrdering.category(board, currentPlayer, previousHole);
-							CategoryMoveOrdering.removeScore(previousCat, 1);
-						}
-					}
-					
-					if (MoveEvaluator.ENABLE_CATEGORY_ORDERING)
-						CategoryMoveOrdering.addScore(moveCategory, 5);
-					
-					if (!isCapture && depthRemaining >= 2 && depthRemaining <= 12 && MoveEvaluator.ENABLE_KILLERS)
-						KillerMoves.record(depthRemaining, i);
-					
-					break;
-				}
-			}
-			
-			// Réinitialisation du flag pour le prochain coup
-			alreadyPenalized = false;
-		}
-
-		if (!this.interrupted)
-		{
-			final EntryType type;
-
-			if (this.evaluation <= alpha0)
-				type = EntryType.UPPER_BOUND;
-			else if (this.evaluation >= beta0)
-				type = EntryType.LOWER_BOUND;
-			else
-				type = EntryType.EXACT;
-
-			transpositionTable.store(key, this.evaluation, depthRemaining, type, bestMove);
-		}
+	            transpositionTable.store(key, this.evaluation, depthRemaining, type, bestMove);
+	        }
+	    }
+	    finally
+	    {
+	        PositionHistory.pop(currentKey);
+	    }
 	}
 
 	public final double getEvaluation()
@@ -382,16 +377,24 @@ public abstract class BitMinMaxNode
 
 	// ===== Méthodes d'évaluation =====
 
-	/**
-	 * Calcule la différence de score du point de vue de l'IA
-	 * @param board L'état du plateau de jeu
-	 * @return La différence de score entre l'IA et l'adversaire
-	 */
 	private double evaluatePosition(BitBoard board)
 	{
-		return positionEvaluator.evaluate(board, player);
-	}
+		//return positionEvaluator.evaluate(board, player);
+		
+		double baseEval = positionEvaluator.evaluate(board, player);
+		
+		final long key = board.ttKey();
+		final int repetitions = PositionHistory.count(key);
+		
+		if (repetitions >= 3)
+			return 0.0;
 	
+		if (repetitions >= 2)
+			baseEval -= 30.0;
+		
+		return baseEval;
+	}
+		
 	/**
 	 * Calcule la réduction de profondeur à appliquer pour un coup donné dans le cadre du LMR
 	 * @param depthRemaining La profondeur restante à explorer pour ce noeud

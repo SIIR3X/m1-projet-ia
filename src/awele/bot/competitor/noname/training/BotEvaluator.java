@@ -7,6 +7,7 @@ import java.util.Random;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.ordering.CategoryMoveOrdering;
+import awele.bot.competitor.noname.ordering.PositionHistory;
 import awele.bot.competitor.noname.search.minmax.BitMaxNode;
 import awele.bot.competitor.noname.search.minmax.BitMinMaxNode;
 import awele.bot.competitor.noname.search.transposition.TwoLevelTranspositionTable;
@@ -192,6 +193,9 @@ public final class BotEvaluator
 		BitBoard board = startBoard.clone();
 		candidateTT.clear();
 		opponentTT.clear();
+		
+		PositionHistory.clear();
+		
 		playRandomOpening(board, RANDOM_OPENING_PLIES);
 		
 		final TwoLevelTranspositionTable savedTT = BitMinMaxNode.transpositionTable;
@@ -226,8 +230,9 @@ public final class BotEvaluator
 				BitMinMaxNode.transpositionTable = isCandidateTurn ? candidateTT : opponentTT;
 				
 				final double[] decision = getBestDecision(board, currentEval, currentDepth);
-				board.playMove(decision);
 				
+				board.playMove(decision);
+
 				movesPlayed++;
 			}
 			
