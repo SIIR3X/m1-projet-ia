@@ -2,6 +2,10 @@ package awele.bot.competitor.noname.ordering;
 
 import java.util.Arrays;
 
+/**
+ * @author Lucas Fagioli
+ * Classe gérant les killer moves pour l'algorithme de recherche alpha-beta
+ */
 public final class KillerMoves
 {
 	/**

@@ -24,7 +24,7 @@ public final class PositionEvaluator
 	private final SeedControlHeuristic seedControlHeuristic;
 	private final EndgameProximityHeuristic endgameProximityHeuristic;
 	private final ExtraMovesPotentialHeuristic extraMovesHeuristic;
-	
+
 	// Normalisation de la fitness
 	private static final double MAX_SCORE_DIFF = 25.0;
 	private static final double MAX_MOBILITY_DIFF = 6.0;
@@ -32,7 +32,7 @@ public final class PositionEvaluator
 	private static final double MAX_FAMINE_THREATS_DIFF = 6.0;
 	private static final double MAX_SEED_CONTROL_DIFF = 24.0;
 	private static final double MAX_ENDGAME_PROXIMITY = 15.0;
-	private static final double MAX_EXTRA_MOVES_DIFF = 6.0;  
+	private static final double MAX_EXTRA_MOVES_DIFF = 6.0;
 
 	/**
 	 * Nombre d'heuristiques utilisées, pour validation des poids
@@ -83,7 +83,7 @@ public final class PositionEvaluator
 		this.seedControlHeuristic = new SeedControlHeuristic();
 		this.endgameProximityHeuristic = new EndgameProximityHeuristic();
 		this.extraMovesHeuristic = new ExtraMovesPotentialHeuristic();
-		
+
 		setWeights(weights);
 	}
 	
@@ -105,35 +105,35 @@ public final class PositionEvaluator
 		final double w4 = lerp(wEarly[4], wLate[4], phase);
 		final double w5 = lerp(wEarly[5], wLate[5], phase);
 		final double w6 = lerp(wEarly[6], wLate[6], phase);
-		
+
 		// Évaluation des heuristiques
 		double scoreDiff = scoreDiffHeuristic.evaluate(board, player);
 		double mobilityDiff = mobilityHeuristic.evaluate(board, player);
 		double captureValueDiff = captureValueHeuristic.evaluate(board, player);
 		double famineSafetyDiff = famineSafetyHeuristic.evaluate(board, player);
-		double seedControlDiff = seedControlHeuristic.evaluate(board, player);
+		//double seedControlDiff = seedControlHeuristic.evaluate(board, player);
 		double endgameProximity = endgameProximityHeuristic.evaluate(board, player);
-		double extraMovesDiff = extraMovesHeuristic.evaluate(board, player);
-		
-		// Normalise dans [-1, 1]
+		//double extraMovesDiff = extraMovesHeuristic.evaluate(board, player);
+
+		// Normalisation dans [-1, 1]
 		scoreDiff = clamp11(scoreDiff / MAX_SCORE_DIFF);
 		mobilityDiff = clamp11(mobilityDiff / MAX_MOBILITY_DIFF);
 		captureValueDiff = clamp11(captureValueDiff / MAX_CAPTURE_VALUE_DIFF);
 		famineSafetyDiff = clamp11(famineSafetyDiff / MAX_FAMINE_THREATS_DIFF);
-		seedControlDiff = clamp11(seedControlDiff / MAX_SEED_CONTROL_DIFF);
+		//seedControlDiff = clamp11(seedControlDiff / MAX_SEED_CONTROL_DIFF);
 		endgameProximity = clamp11(endgameProximity / MAX_ENDGAME_PROXIMITY);
-		extraMovesDiff = clamp11(extraMovesDiff / MAX_EXTRA_MOVES_DIFF);
-		
+		//extraMovesDiff = clamp11(extraMovesDiff / MAX_EXTRA_MOVES_DIFF);
+
 		// Somme pondérée
 		double total = 0.0;
 		total += w0 * scoreDiff;
 		total += w1 * mobilityDiff;
 		total += w2 * captureValueDiff;
 		total += w3 * famineSafetyDiff;
-		total += w4 * seedControlDiff;
+		//total += w4 * seedControlDiff;
 		total += w5 * endgameProximity;
-		total += w6 * extraMovesDiff;
-		
+		//total += w6 * extraMovesDiff;
+
 		return total;
 	}
 
@@ -184,22 +184,22 @@ public final class PositionEvaluator
 	{
 		return new double[] {
 			// Early game weights
-			10.0,  // ScoreDifference - toujours dominant
-			7.0,   // Mobility - important pour la flexibilité
-			5.0,   // CaptureValue - modéré
-			8.0,   // FamineSafety - critique pour ne pas perdre
-			3.0,   // SeedControl - mineur
-			1.0,   // EndgameProximity - quasi-ignoré (pas encore en endgame)
-			4.0,   // ExtraMoves - utile pour construire des avantages
-			
+			10.0,  // ScoreDifference
+			7.0,   // Mobility
+			5.0,   // CaptureValue
+			8.0,   // FamineSafety
+			3.0,   // SeedControl
+			1.0,   // EndgameProximity
+			4.0,   // ExtraMoves
+
 			// Late game weights
-			14.0,  // ScoreDifference - TRÈS dominant
-			4.0,   // Mobility - réduit (moins important)
-			7.0,   // CaptureValue - augmente (captures décisives)
-			5.0,   // FamineSafety - réduit mais toujours important
-			1.0,   // SeedControl - quasi-ignoré (peu de graines restantes)
-			8.0,   // EndgameProximity - crucial pour finir la partie
-			3.0    // ExtraMoves - modéré
+			14.0,  // ScoreDifference
+			4.0,   // Mobility
+			7.0,   // CaptureValue
+			5.0,   // FamineSafety
+			1.0,   // SeedControl
+			8.0,   // EndgameProximity
+			3.0,   // ExtraMoves
 		};
 	}
 	

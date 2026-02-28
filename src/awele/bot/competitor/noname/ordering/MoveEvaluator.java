@@ -100,13 +100,10 @@ public final class MoveEvaluator
 				
 				if (ENABLE_KILLERS)
 				{
-					if (depthRemaining >= 2 && depthRemaining <= 12)
-					{
-						if (hole == k0)
-							score += KILLER_BONUS_1;
-						else if (hole == k1)
-							score += KILLER_BONUS_2;
-					}
+					if (hole == k0)
+						score += KILLER_BONUS_1;
+					else if (hole == k1)
+						score += KILLER_BONUS_2;
 				}
 				
 				scores[index] = score;
