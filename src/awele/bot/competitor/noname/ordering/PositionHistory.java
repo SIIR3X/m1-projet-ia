@@ -2,6 +2,10 @@ package awele.bot.competitor.noname.ordering;
 
 import java.util.Arrays;
 
+/**
+ * @author Lucas Fagioli
+ * Structure de données pour suivre l'historique des positions visitées dans la recherche, afin de détecter les répétitions
+ */
 public final class PositionHistory
 {
     private static final int MAP_SIZE = 1024;
@@ -15,6 +19,8 @@ public final class PositionHistory
     private static int stackSize = 0;
     private static int maxStackSize = 0;
     private static int uniqueRepetitions = 0;
+    
+    private PositionHistory() {}
     
     public static void push(long key)
     {
@@ -141,10 +147,5 @@ public final class PositionHistory
         key ^= (key >>> 32);
         key ^= (key >>> 16);
         return ((int) key) & MAP_MASK;
-    }
-    
-    private PositionHistory()
-    {
-        throw new AssertionError();
     }
 }
