@@ -58,7 +58,7 @@ public final class CMAES
 		    final int N = config.xmean.length;
 
 		    // Taille de la population
-		    final int lambda = 	12;
+		    final int lambda = 	4 + (int)(3 * Math.log(N));
 
 		    // Nombre de parents sélectionnés
 		    final int mu = lambda / 2;

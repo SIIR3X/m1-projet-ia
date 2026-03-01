@@ -67,7 +67,7 @@ public final class BotEvaluator
 	/**
 	 * Pourcetange contre le boss
 	 */
-	private static final double BOSS_GAME_RATIO = 0.25;
+	private static final double BOSS_GAME_RATIO = 0.15;
 
 	public BotEvaluator()
 	{
