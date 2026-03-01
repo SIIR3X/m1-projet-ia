@@ -62,9 +62,9 @@ public final class TrainingLogger implements AutoCloseable
     public static final String HEADER_WEIGHTS =
             "iteration,phase," +
             "w_score_diff_early,w_mobility_early,w_capture_value_early,w_famine_safety_early," +
-            "w_seed_control_early,w_endgame_proximity_early,w_extra_moves_early," +
+            "w_endgame_proximity_early,w_extra_moves_early," +
             "w_score_diff_late,w_mobility_late,w_capture_value_late,w_famine_safety_late," +
-            "w_seed_control_late,w_endgame_proximity_late,w_extra_moves_late";
+            "w_endgame_proximity_late,w_extra_moves_late";
 
     /**
      * En-tête CSV pour le logging du meilleur poids trouvé
@@ -72,9 +72,9 @@ public final class TrainingLogger implements AutoCloseable
     public static final String HEADER_BEST =
             "iteration,phase,elapsed_ms,best_score," +
             "w_score_diff_early,w_mobility_early,w_capture_value_early,w_famine_safety_early," +
-            "w_seed_control_early,w_endgame_proximity_early,w_extra_moves_early," +
+            "w_endgame_proximity_early,w_extra_moves_early," +
             "w_score_diff_late,w_mobility_late,w_capture_value_late,w_famine_safety_late," +
-            "w_seed_control_late,w_endgame_proximity_late,w_extra_moves_late";
+            "w_endgame_proximity_late,w_extra_moves_late";
 
     private static final String HEADER_SUMMARY =
         "phase,nb_iterations,duration_ms,initial_score,final_score,best_score";

@@ -57,7 +57,7 @@ public abstract class NNMinMaxNode
 	/**
 	 * Flag indiquant si le temps est écoulé
 	 */
-	public static volatile boolean timeExpired;
+	public static boolean timeExpired;
 
 	/**
 	 * Table de transposition partagée pour stocker les évaluations des positions

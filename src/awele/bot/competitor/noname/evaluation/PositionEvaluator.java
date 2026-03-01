@@ -7,7 +7,6 @@ import awele.bot.competitor.noname.evaluation.features.ExtraMovesPotentialHeuris
 import awele.bot.competitor.noname.evaluation.features.FamineSafetyHeuristic;
 import awele.bot.competitor.noname.evaluation.features.MobilityHeuristic;
 import awele.bot.competitor.noname.evaluation.features.ScoreDifferenceHeuristic;
-import awele.bot.competitor.noname.evaluation.features.SeedControlHeuristic;
 
 /**
  * @author Lucas Fagioli
@@ -21,7 +20,6 @@ public final class PositionEvaluator
 	private final MobilityHeuristic mobilityHeuristic;
 	private final CaptureValueHeuristic captureValueHeuristic;
 	private final FamineSafetyHeuristic famineSafetyHeuristic;
-	private final SeedControlHeuristic seedControlHeuristic;
 	private final EndgameProximityHeuristic endgameProximityHeuristic;
 	private final ExtraMovesPotentialHeuristic extraMovesHeuristic;
 
@@ -30,14 +28,13 @@ public final class PositionEvaluator
 	private static final double MAX_MOBILITY_DIFF = 6.0;
 	private static final double MAX_CAPTURE_VALUE_DIFF = 30.0;
 	private static final double MAX_FAMINE_THREATS_DIFF = 6.0;
-	private static final double MAX_SEED_CONTROL_DIFF = 24.0;
 	private static final double MAX_ENDGAME_PROXIMITY = 15.0;
 	private static final double MAX_EXTRA_MOVES_DIFF = 6.0;
 
 	/**
 	 * Nombre d'heuristiques utilisées, pour validation des poids
 	 */
-	private static final int N = 7;
+	private static final int N = 6;
 	
 	/**
 	 * Poids pour chaque heuristique en début de partie (early + mid)
@@ -57,7 +54,6 @@ public final class PositionEvaluator
 		MobilityHeuristic.ID,
 		CaptureValueHeuristic.ID,
 		FamineSafetyHeuristic.ID,
-		SeedControlHeuristic.ID,
 		EndgameProximityHeuristic.ID,
 		ExtraMovesPotentialHeuristic.ID
 	};
@@ -80,7 +76,6 @@ public final class PositionEvaluator
 		this.mobilityHeuristic = new MobilityHeuristic();
 		this.captureValueHeuristic = new CaptureValueHeuristic();
 		this.famineSafetyHeuristic = new FamineSafetyHeuristic();
-		this.seedControlHeuristic = new SeedControlHeuristic();
 		this.endgameProximityHeuristic = new EndgameProximityHeuristic();
 		this.extraMovesHeuristic = new ExtraMovesPotentialHeuristic();
 
@@ -104,25 +99,22 @@ public final class PositionEvaluator
 		final double w3 = lerp(wEarly[3], wLate[3], phase);
 		final double w4 = lerp(wEarly[4], wLate[4], phase);
 		final double w5 = lerp(wEarly[5], wLate[5], phase);
-		final double w6 = lerp(wEarly[6], wLate[6], phase);
 
 		// Évaluation des heuristiques
 		double scoreDiff = scoreDiffHeuristic.evaluate(board, player);
 		double mobilityDiff = mobilityHeuristic.evaluate(board, player);
 		double captureValueDiff = captureValueHeuristic.evaluate(board, player);
 		double famineSafetyDiff = famineSafetyHeuristic.evaluate(board, player);
-		//double seedControlDiff = seedControlHeuristic.evaluate(board, player);
 		double endgameProximity = endgameProximityHeuristic.evaluate(board, player);
-		//double extraMovesDiff = extraMovesHeuristic.evaluate(board, player);
+		double extraMovesDiff = extraMovesHeuristic.evaluate(board, player);
 
 		// Normalisation dans [-1, 1]
 		scoreDiff = clamp11(scoreDiff / MAX_SCORE_DIFF);
 		mobilityDiff = clamp11(mobilityDiff / MAX_MOBILITY_DIFF);
 		captureValueDiff = clamp11(captureValueDiff / MAX_CAPTURE_VALUE_DIFF);
 		famineSafetyDiff = clamp11(famineSafetyDiff / MAX_FAMINE_THREATS_DIFF);
-		//seedControlDiff = clamp11(seedControlDiff / MAX_SEED_CONTROL_DIFF);
 		endgameProximity = clamp11(endgameProximity / MAX_ENDGAME_PROXIMITY);
-		//extraMovesDiff = clamp11(extraMovesDiff / MAX_EXTRA_MOVES_DIFF);
+		extraMovesDiff = clamp11(extraMovesDiff / MAX_EXTRA_MOVES_DIFF);
 
 		// Somme pondérée
 		double total = 0.0;
@@ -130,9 +122,8 @@ public final class PositionEvaluator
 		total += w1 * mobilityDiff;
 		total += w2 * captureValueDiff;
 		total += w3 * famineSafetyDiff;
-		//total += w4 * seedControlDiff;
-		total += w5 * endgameProximity;
-		//total += w6 * extraMovesDiff;
+		total += w4 * endgameProximity;
+		total += w5 * extraMovesDiff;
 
 		return total;
 	}
@@ -188,7 +179,6 @@ public final class PositionEvaluator
 			7.0,   // Mobility
 			5.0,   // CaptureValue
 			8.0,   // FamineSafety
-			3.0,   // SeedControl
 			1.0,   // EndgameProximity
 			4.0,   // ExtraMoves
 
@@ -197,7 +187,6 @@ public final class PositionEvaluator
 			4.0,   // Mobility
 			7.0,   // CaptureValue
 			5.0,   // FamineSafety
-			1.0,   // SeedControl
 			8.0,   // EndgameProximity
 			3.0,   // ExtraMoves
 		};

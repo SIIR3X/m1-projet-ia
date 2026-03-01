@@ -48,27 +48,27 @@ public final class AdaptiveOpponentSelector
 	 * Poids caractéristiques de chaque profil
 	 */
 	public static final double[][] PROFILE_WEIGHTS = {
-	    // BALANCED
-	    {10.0, 7.0, 5.0, 8.0, 3.0, 1.0, 4.0,   14.0, 4.0, 7.0, 5.0, 1.0, 8.0, 3.0},
+		    // BALANCED
+		    {10.0, 7.0, 5.0, 8.0, 1.0, 4.0,   14.0, 4.0, 7.0, 5.0, 8.0, 3.0},
 
-	    // ATTACKER
-	    { 8.0, 4.0,15.0, 3.0, 1.0, 0.0, 7.0,   12.0, 2.0,18.0, 2.0, 0.0, 5.0, 6.0},
+		    // ATTACKER
+		    { 8.0, 4.0,15.0, 3.0, 0.0, 7.0,   12.0, 2.0,18.0, 2.0, 5.0, 6.0},
 
-	    // DEFENDER
-	    { 9.0, 8.0, 2.0,15.0, 8.0, 0.0, 2.0,   14.0, 5.0, 3.0,12.0, 5.0,10.0, 1.0},
+		    // DEFENDER
+		    { 9.0, 8.0, 2.0,15.0, 0.0, 2.0,   14.0, 5.0, 3.0,12.0,10.0, 1.0},
 
-	    // HOARDER
-	    { 8.0, 5.0, 4.0, 7.0, 2.0, 3.0, 4.0,   18.0, 2.0, 8.0, 4.0, 0.5,15.0, 2.0},
+		    // HOARDER
+		    { 8.0, 5.0, 4.0, 7.0, 3.0, 4.0,   18.0, 2.0, 8.0, 4.0,15.0, 2.0},
 
-	    // STARVER
-	    { 8.0,15.0, 4.0, 6.0, 2.0, 0.0, 8.0,   12.0,10.0, 5.0, 4.0, 0.5, 6.0, 7.0},
+		    // STARVER
+		    { 8.0,15.0, 4.0, 6.0, 0.0, 8.0,   12.0,10.0, 5.0, 4.0, 6.0, 7.0},
 
-	    // SELF (sera écrasé dans tt les cas)
-	    {10.0, 8.0, 4.0, 8.0, 3.0, 0.5, 5.0,   15.0, 3.0, 8.0, 6.0, 0.5, 9.0, 3.0},
+		    // SELF
+		    {10.0, 8.0, 4.0, 8.0, 0.5, 5.0,   15.0, 3.0, 8.0, 6.0, 9.0, 3.0},
 
-	    // BOSS
-	    {10.0, 7.0, 5.5, 8.5, 3.5, 1.0, 4.5,   14.5, 4.5, 7.5, 5.5, 1.0, 8.5, 3.5}
-	};
+		    // BOSS
+		    {10.0, 7.0, 5.5, 8.5, 1.0, 4.5,   14.5, 4.5, 7.5, 5.5, 8.5, 3.5}
+		};
 
 	// ===== Multiplicateur de fitness =====
 	
@@ -82,7 +82,7 @@ public final class AdaptiveOpponentSelector
 		1.0, // HOARDER
 		1.0, // STARVER
 		1.0, // SELF
-		1.5, // BOSS
+		2.0, // BOSS
 	};
 	
 	// ===== Probabilités initiales =====
@@ -104,7 +104,7 @@ public final class AdaptiveOpponentSelector
 	 * Probabilité minimale garantie pour chaque profil
 	 * (ca évite de perdre complètement la trace d'un adversaire potentiel et de l'oublier)
 	 */
-	private static final double EPSILON = 0.01;
+	private static final double EPSILON = 0.05;
 	
 	/**
 	 * Taille de la fenêtre

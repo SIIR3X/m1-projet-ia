@@ -1,7 +1,5 @@
 package awele.bot.competitor.noname;
 
-import java.util.Arrays;
-
 import awele.bot.CompetitorBot;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.core.bitboard.BitBoardConverter;
@@ -83,27 +81,23 @@ public final class NoNameBot extends CompetitorBot
 	        
 	        double wMin = 0.0;
 	        double wMax = 15.0;
-	        
-	        double[] w = new double[14];
-	        Arrays.fill(w, 7.5);
-	        
+
 	        // Phase 1 : poids
 	        CMAESConfig cfg = new CMAESConfig(
 	        		PositionEvaluator.getDefaultPhaseAwareWeights(),
-	        		//w,
-	        		1.0, // sigma
+	        		0.8, // sigma
 	        		10_000_000L, // inutile pour moi
 	        		LEARN_WEIGHTS_MS,
-	        		12, // nbGames
-	        		4, // depth
+	        		24, // nbGames
+	        		6, // depth
 	        		wMin, wMax); // bornes
 	        
 	        CMAES cmaes = new CMAES(cfg, botEvaluator);
-	        //cmaes.optimize(NNMinMaxNode.positionEvaluator, logger, "CMAES");
+	        cmaes.optimize(NNMinMaxNode.positionEvaluator, logger, "CMAES");
 	        
 	        // Phase 2 : catégories
 	        final PositionEvaluator evaluator = NNMinMaxNode.positionEvaluator;
-	        //botEvaluator.trainCategoriesSelfPlay(evaluator, 750, 7, LEARN_CATEGORIES_MS);
+	        botEvaluator.trainCategoriesSelfPlay(evaluator, 1000, 8, LEARN_CATEGORIES_MS);
 	    }
 	}
 
