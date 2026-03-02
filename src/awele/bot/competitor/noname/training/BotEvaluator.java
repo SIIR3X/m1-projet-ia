@@ -161,18 +161,19 @@ public final class BotEvaluator
 	/**
 	 * Entraîne les catégories de coups en jouant des parties en self-play
 	 * @param evaluator L'évaluateur de position
-	 * @param nbGames Nombre de parties à jouer pour l'entraînement
 	 * @param depth Profondeur de recherche à utiliser pour les parties d'entraînement
 	 * @param maxTimeMs Temps maximum à consacrer à l'entraînement, en millisecondes
 	 */
-	public void trainCategoriesSelfPlay(PositionEvaluator evaluator, int nbGames, int depth, long maxTimeMs)
+	public void trainCategoriesSelfPlay(PositionEvaluator evaluator, int depth, long maxTimeMs)
 	{
 		CategoryMoveOrdering.resetScores();
 		CategoryMoveOrdering.LEARNING_ENABLED = true;
 
 		final long startTime = System.currentTimeMillis();
 
-		for (int game = 0; game < nbGames; game++)
+		int game = 0;
+		
+		while (true)
 		{
 			final long elapsed = System.currentTimeMillis() - startTime;
 			if (elapsed >= maxTimeMs)
@@ -180,14 +181,16 @@ public final class BotEvaluator
 
 			final boolean candidateFirst = (game % 2 == 0);
 			
-			System.out.println("Training categories - Game " + (game + 1) + "/" + nbGames + " (elapsed: " + (elapsed / 1000) + "s)");
-
+			System.out.println("Self-play game " + (game + 1) + " / " + "elapsed: " + (elapsed / 1000) + "s / " + (maxTimeMs / 1000) + "s");
+			
 			playSingleGame(
 				evaluator,
 				evaluator,
 				candidateFirst,
 				depth,
 				depth);
+			
+			game++;
 		}
 
 		CategoryMoveOrdering.LEARNING_ENABLED = false;
