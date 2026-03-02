@@ -14,8 +14,6 @@ import awele.bot.competitor.noname.evaluation.features.ScoreDifferenceHeuristic;
  */
 public final class PositionEvaluator
 {
-	// ===== Heuristiques utilisées =====
-	
 	private final ScoreDifferenceHeuristic scoreDiffHeuristic;
 	private final MobilityHeuristic mobilityHeuristic;
 	private final CaptureValueHeuristic captureValueHeuristic;
@@ -47,23 +45,11 @@ public final class PositionEvaluator
 	private final double[] wLate = new double[N];
 	
 	/**
-	 * Identifiants des heuristiques dans l'ordre d'évaluation, pour sérialisation des poids
-	 */
-	public static final String[] WEIGHT_IDS = {
-		ScoreDifferenceHeuristic.ID,
-		MobilityHeuristic.ID,
-		CaptureValueHeuristic.ID,
-		FamineSafetyHeuristic.ID,
-		EndgameProximityHeuristic.ID,
-		ExtraMovesPotentialHeuristic.ID
-	};
-	
-	/**
 	 * Constreucteur avec poids par défaut
 	 */
 	public PositionEvaluator()
 	{
-		this(getDefaultPhaseAwareWeights());
+		this(getDefaultWeights());
 	}
 	
 	/**
@@ -169,27 +155,38 @@ public final class PositionEvaluator
 	
 	/**
 	 * Retourne les poids par défaut de l'évaluation
-	 * @return Tableau de poids dans l'ordre
+	 * 
+	 * Point de départ pour l'entraînement
+	 * Seront écrasée assez vite (sigma = 0.8, variation rapide sur [0 ; 15]
+	 * Peut être arrondi à .0 change pas grand chose
+	 * 
+	 * Idée de départ :
+	 * - Score diff : très important en fin de partie, moins en début
+	 * - Mobilité : plus important en début de partie, moins en fin
+	 * - Capture value : important tout au long de la partie, un peu plus en fin
+	 * - Famine safety : important tout au long de la partie, un peu plus en début
+	 * - Proximity to win : pas important en début de partie, très important en fin de partie
+	 * - Extra moves : plus important en début de partie, moins en fin
 	 */
-	public static double[] getDefaultPhaseAwareWeights()
+	public static double[] getDefaultWeights()
 	{
-		return new double[] {
-			// Early game weights
-			10.0,  // ScoreDifference
-			7.0,   // Mobility
-			5.0,   // CaptureValue
-			8.0,   // FamineSafety
-			1.0,   // EndgameProximity
-			4.0,   // ExtraMoves
+	    return new double[] {
+	        // Early game
+	        10.1, // ScoreDifference
+	        7.9, // Mobility
+	        4.6, // CaptureValue
+	        8.0, // FamineSafety
+	        4.6, // EndgameProximity
+	        1.4, // ExtraMoves
 
-			// Late game weights
-			14.0,  // ScoreDifference
-			4.0,   // Mobility
-			7.0,   // CaptureValue
-			5.0,   // FamineSafety
-			8.0,   // EndgameProximity
-			3.0,   // ExtraMoves
-		};
+	        // Late game
+	        11.0, // ScoreDifference
+	        0.7, // Mobility
+	        5.8, // CaptureValue
+	        10.6, // FamineSafety
+	        7.8, // EndgameProximity
+	        0.5 // ExtraMoves
+	    };
 	}
 	
 	/**

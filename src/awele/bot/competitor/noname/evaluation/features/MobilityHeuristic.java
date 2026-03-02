@@ -5,12 +5,10 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 2/7 : Différence de mobilité (nombre de coups valides du joueur - nombre de coups valides de l'adversaire)
+ * Heuristique 2/6 : Différence de mobilité (nombre de coups valides du joueur - nombre de coups valides de l'adversaire)
  */
 public final class MobilityHeuristic implements PositionHeuristic
 {
-	public static final String ID = "mobility";
-	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -31,11 +29,5 @@ public final class MobilityHeuristic implements PositionHeuristic
 		}
 		
 		return playerMobility - opponentMobility;
-	}
-	
-	@Override
-	public String getId()
-	{
-		return ID;
 	}
 }

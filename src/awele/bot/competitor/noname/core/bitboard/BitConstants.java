@@ -102,9 +102,5 @@ public final class BitConstants
 	 */
 	public static final long MASK_1_BIT = 0b1L;
 	
-	// Empêche l'instanciation de la classe
-	private BitConstants()
-	{
-		throw new AssertionError("Cette classe ne doit pas être instanciée.");
-	}
+	private BitConstants() {}
 }

@@ -58,8 +58,9 @@ public final class CMAES
 		    final int N = config.xmean.length;
 
 		    // Taille de la population
-		    final int lambda = 	4 + (int)(3 * Math.log(N));
-
+		    //final int lambda = 	4 + (int)(3 * Math.log(N));
+		     final int lambda = 16;
+		     
 		    // Nombre de parents sélectionnés
 		    final int mu = lambda / 2;
 
@@ -110,10 +111,7 @@ public final class CMAES
 
 		    final long startTime = System.currentTimeMillis();
 		    final long endTime = startTime + config.timeBudgetMs;
-
-		    double initialFitness = Double.NEGATIVE_INFINITY;
-		    double finalFitness = Double.NEGATIVE_INFINITY;
-
+		    
 		    // --- Progress / ETA (throttled) ---
 		    long lastProgressPrint = 0L;
 		    final long progressT0 = startTime;
@@ -281,7 +279,7 @@ public final class CMAES
 		                    invsqrtC[i][j] = sum;
 		                }
 		            }
-		        }
+		        }   
 
 		        double dMin = Double.MAX_VALUE;
 		        double dMax = Double.MIN_VALUE;
@@ -290,15 +288,31 @@ public final class CMAES
 		            if (d < dMin) dMin = d;
 		            if (d > dMax) dMax = d;
 		        }
+		        
+		        
+		        if (logger != null)
+		        {
+		            double[] std = new double[N];
+
+		            for (int i = 0; i < N; i++)
+		                std[i] = sigma * D[i];
+
+		            logger.logCmaesDistribution(
+		                generationCount,
+		                phaseName,
+		                System.currentTimeMillis() - startTime,
+		                sigma,
+		                dMax / Math.max(dMin, 1e-20),
+		                xmean,
+		                std
+		            );
+		        }
+		        
 		        if (dMax / dMin > 1e7)
 		            break;
 
 		        final double genBestFitness = arfitness[arindex[0]];
 		        final double genAvgFitness = averageFitness(arfitness);
-
-		        if (generationCount == 0)
-		            initialFitness = genBestFitness;
-		        finalFitness = genBestFitness;
 
 		        if (genBestFitness > bestFitness)
 		        {
@@ -335,15 +349,6 @@ public final class CMAES
 		    }
 
 		    evaluator.setWeights(bestWeights);
-
-		    if (logger != null)
-		    {
-		        logger.logSummary(
-		            phaseName, generationCount,
-		            System.currentTimeMillis() - startTime,
-		            initialFitness, finalFitness, bestFitness
-		        );
-		    }
 		}
 	
 	

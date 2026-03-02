@@ -5,12 +5,10 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 3/7 : Sécurité face à la famine
+ * Heuristique 3/6 : Sécurité face à la famine
  */
 public final class FamineSafetyHeuristic implements PositionHeuristic
 {
-	public static final String ID = "famine_safety";
-	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -33,11 +31,5 @@ public final class FamineSafetyHeuristic implements PositionHeuristic
 
 	    // Opposé = risque (plus il y a de menaces de famine, pire c'est)
 	    return -famineThreats;
-	}
-	
-	@Override
-	public String getId()
-	{
-		return ID;
 	}
 }

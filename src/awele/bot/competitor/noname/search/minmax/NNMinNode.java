@@ -63,8 +63,5 @@ public final class NNMinNode extends NNMinMaxNode
 	protected NNMinMaxNode createNextNode(BitBoard board, int depth, double alpha, double beta)
 	{
 		return new NNMaxNode(board, depth, alpha, beta);
-	}
-
-
-	
+	}	
 }

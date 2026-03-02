@@ -21,8 +21,6 @@ import awele.bot.competitor.noname.search.transposition.TranspositionTable;
  */
 public abstract class NNMinMaxNode
 {
-	// ===== Variables statiques =====
-
 	/**
 	 * Profondeur maximale pour le LMR
 	 */
@@ -90,10 +88,6 @@ public abstract class NNMinMaxNode
 	 */
 	public static int currentPly = 0;
 
-	public static long nodeCount = 0;
-
-	// ===== Variables d'instance =====
-
 	/**
 	 * Évaluation du noeud : estimation de la valeur de la position pour le joueur
 	 * actuel
@@ -131,8 +125,6 @@ public abstract class NNMinMaxNode
 	 */
 	public NNMinMaxNode(BitBoard board, int depth, double alpha, double beta)
 	{
-		nodeCount++;
-
 		this.decision = new double[NB_HOLES];
 		this.interrupted = false;
 		this.evaluation = getWorstScore();
@@ -157,7 +149,7 @@ public abstract class NNMinMaxNode
 			final int depthRemaining = Math.max(0, maxDepth - depth);
 			final long key = board.ttKey();
 
-			final TranspositionEntry tt = ttProbe(key);
+			final TranspositionEntry tt = transpositionTable.probe(key);
 
 			if (tt != null && tt.depth >= depthRemaining)
 			{
@@ -323,10 +315,9 @@ public abstract class NNMinMaxNode
 							}
 						}
 
-						if (MoveEvaluator.ENABLE_CATEGORY_ORDERING)
-							CategoryMoveOrdering.addScore(moveCategory, 5);
+						CategoryMoveOrdering.addScore(moveCategory, 5);
 
-						if (!isCapture && depthRemaining >= 2 && depthRemaining <= 12 && MoveEvaluator.ENABLE_KILLERS)
+						if (!isCapture && depthRemaining >= 2 && depthRemaining <= 12)
 							KillerMoves.record(depthRemaining, i);
 
 						break;
@@ -347,7 +338,7 @@ public abstract class NNMinMaxNode
 				else
 					type = EntryType.EXACT;
 
-				ttStore(key, this.evaluation, depthRemaining, type, bestMove);
+				transpositionTable.store(key, this.evaluation, depthRemaining, type, bestMove);
 
 				if (depth == 0 && localPVLength > 0)
 					pvTable.store(maxDepth, 0, localPV[0], localPV, localPVLength);
@@ -379,10 +370,6 @@ public abstract class NNMinMaxNode
 
 	// ===== Méthodes statiques =====
 
-	/**
-	 * Permet de basculer la recherche sur la table d'entraînement.
-	 * À utiliser uniquement pendant la phase learn().
-	 */
 	public static void setTrainingMode(boolean enable)
 	{
 		trainingMode = enable;
@@ -393,21 +380,6 @@ public abstract class NNMinMaxNode
 		return trainingMode;
 	}
 
-	private static TranspositionEntry ttProbe(long key)
-	{
-		return transpositionTable.probe(key);
-	}
-
-	private static void ttStore(long key, double evaluation, int depthRemaining, EntryType type, int bestMove)
-	{
-		transpositionTable.store(key, evaluation, depthRemaining, type, bestMove);
-	}
-
-	/**
-	 * Initialisation des paramètres statiques
-	 * @param board Le plateau de départ
-	 * @param depth La profondeur maximale pour la recherche MinMax
-	 */
 	public static void initialize(BitBoard board, int depth)
 	{
 		NNMinMaxNode.maxDepth = depth;
@@ -519,8 +491,7 @@ public abstract class NNMinMaxNode
 
 	private static int[][] buildLmrTable()
 	{
-		// Table [depth][moveIndex]
-		final int maxMoves = 32; // marge (Awélé = 6 coups max, mais on garde large)
+		final int maxMoves = 32;
 		final int[][] table = new int[LMR_MAX_DEPTH + 1][maxMoves + 1];
 
 		for (int depth = 0; depth <= LMR_MAX_DEPTH; depth++)
@@ -528,15 +499,14 @@ public abstract class NNMinMaxNode
 			for (int moveIndex = 0; moveIndex <= maxMoves; moveIndex++)
 			{
 				if (depth < 3 || moveIndex < 3)
-				{
 					table[depth][moveIndex] = 0;
-				}
 				else
 				{
-					// Formule simple empirique (déjà dans ton code : table pré-calculée)
-					// On conserve la même logique : plus depth et moveIndex sont grands, plus on réduit.
 					int r = (int) (Math.log(depth) * Math.log(moveIndex));
-					if (r < 0) r = 0;
+					
+					if (r < 0)
+						r = 0;
+					
 					table[depth][moveIndex] = r;
 				}
 			}

@@ -52,22 +52,22 @@ public final class BotEvaluator
 	/**
 	 * Nombre de coups d'ouverture aléatoires à jouer avant de commencer la recherche
 	 */
-	private static final int RANDOM_OPENING_PLIES = 6;
+	private static final int RANDOM_OPENING_PLIES = 4;
 
 	/**
 	 * Points attribués pour une victoire
 	 */
-	private static final double WIN_BONUS  = 200.0;
+	private static final double WIN_BONUS  = 50.0;
 
 	/**
 	 * Points attribués pour un match nul
 	 */
-	private static final double DRAW_BONUS = 100.0;
+	private static final double DRAW_BONUS = 25.0;
 
 	/**
 	 * Pourcetange contre le boss
 	 */
-	private static final double BOSS_GAME_RATIO = 0.15;
+	private static final double BOSS_GAME_RATIO = 0.10;
 
 	public BotEvaluator()
 	{
@@ -90,7 +90,9 @@ public final class BotEvaluator
 	{
 		final PositionEvaluator candidateEvaluator = new PositionEvaluator(weights);
 		double totalFitness = 0.0;
-		double totalResult = 0.0;
+
+		candidateTT.clear();
+		opponentTT.clear();
 
 		// Parties contre le profil normal
 		final PositionEvaluator opponentEvaluator = selector.getEvaluator(profile);
@@ -108,10 +110,9 @@ public final class BotEvaluator
 				normalOpponentDepth) * normalMultiplier;
 
 			totalFitness += gameFitness;
-			totalResult += outcomeSign(gameFitness, normalMultiplier);
+			int result = outcomeSign(gameFitness, normalMultiplier);
+			selector.reportResult(profile, result);
 		}
-
-		selector.reportResult(profile, totalResult > 0 ? 1 : (totalResult < 0 ? -1 : 0));
 
 		// Partie contre le BOSS
 		final AdaptiveOpponentSelector.OpponentProfile bossProfile = AdaptiveOpponentSelector.OpponentProfile.BOSS;
@@ -178,6 +179,8 @@ public final class BotEvaluator
 				break;
 
 			final boolean candidateFirst = (game % 2 == 0);
+			
+			System.out.println("Training categories - Game " + (game + 1) + "/" + nbGames + " (elapsed: " + (elapsed / 1000) + "s)");
 
 			playSingleGame(
 				evaluator,
@@ -208,10 +211,6 @@ public final class BotEvaluator
 	{
 		startBoard.initialize();
 		BitBoard board = startBoard.clone();
-
-		// En éval, on reste en mode "game", donc TT game clear par partie
-		candidateTT.clear();
-		opponentTT.clear();
 
 		PositionHistory.clear();
 

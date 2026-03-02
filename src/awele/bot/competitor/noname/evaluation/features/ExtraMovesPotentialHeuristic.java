@@ -7,12 +7,10 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 7/7 : Potentiel de coups supplémentaires
+ * Heuristique 6/6 : Potentiel de coups supplémentaires
  */
 public final class ExtraMovesPotentialHeuristic implements PositionHeuristic
 {
-	public static final String ID = "extra_moves_potential";
-	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -56,11 +54,5 @@ public final class ExtraMovesPotentialHeuristic implements PositionHeuristic
 		}
 		
 		return extraMovesCount;
-	}
-	
-	@Override
-	public String getId()
-	{
-		return ID;
 	}
 }

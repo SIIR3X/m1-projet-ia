@@ -30,20 +30,16 @@ public final class NoNameBot extends CompetitorBot
 	private static final int MAX_DEPTH = 999;
 	
 	/**
-	 * Profondeur minimale pour laquelle on applique la recherche MinMax (en dessous, on peut faire une recherche exhaustive)
+	 * Profondeur minimale pour laquelle on applique la recherche MinMax
 	 */
 	private static final int MIN_DEPTH = 0;
 	
-	// ===== Variables d'instance =====
-
 	private int lastDepthReached;
-	
-	// ===== Constantes d'entraînement =====
 	
 	/**
 	 * Temps pour apprendre les poids
 	 */
-	private static final long LEARN_WEIGHTS_MS = 45L * 60L * 1_000L;
+	private static final long LEARN_WEIGHTS_MS = 45000L * 60L * 1_000L;
 	
 	/**
 	 * Temps pour apprendre les catégories
@@ -64,8 +60,7 @@ public final class NoNameBot extends CompetitorBot
 		this.lastDepthReached = 0;
 		
 		// Clear de la TT
-		// même si on préfèrerai la garder
-		// fairplay
+		// même si on préfèrerai la garder pour avoir un avantage en début de game
 		NNMinMaxNode.transpositionTable.clear();
 		
 		NNMinMaxNode.pvTable.clearAll();
@@ -79,16 +74,17 @@ public final class NoNameBot extends CompetitorBot
 	    {
 	        final BotEvaluator botEvaluator = new BotEvaluator();
 	        
+	        // Bornes des poids
 	        double wMin = 0.0;
 	        double wMax = 15.0;
-
+	        
 	        // Phase 1 : poids
 	        CMAESConfig cfg = new CMAESConfig(
-	        		PositionEvaluator.getDefaultPhaseAwareWeights(),
-	        		0.8, // sigma
-	        		10_000_000L, // inutile pour moi
+	        		PositionEvaluator.getDefaultWeights(),
+	        		1.0, // sigma
+	        		10_000_000L, // inutile pour moi, dans l'algo de base mais ici on s'arrête au temps
 	        		LEARN_WEIGHTS_MS,
-	        		24, // nbGames
+	        		32, // nbGames
 	        		6, // depth
 	        		wMin, wMax); // bornes
 	        
@@ -97,15 +93,13 @@ public final class NoNameBot extends CompetitorBot
 	        
 	        // Phase 2 : catégories
 	        final PositionEvaluator evaluator = NNMinMaxNode.positionEvaluator;
-	        botEvaluator.trainCategoriesSelfPlay(evaluator, 1000, 8, LEARN_CATEGORIES_MS);
+	        botEvaluator.trainCategoriesSelfPlay(evaluator, 750, 7, LEARN_CATEGORIES_MS);
 	    }
 	}
 
 	@Override
 	public double[] getDecision(Board board)
 	{
-	    NNMinMaxNode.nodeCount = 0;
-
 	    final BitBoard bitBoard = BitBoardConverter.fromBoard(board);
 
 	    // Premier coup : joue à droite
@@ -117,7 +111,6 @@ public final class NoNameBot extends CompetitorBot
 	        return opening;
 	    }
 
-	    // Préparation de la recherche
 	    NNMinMaxNode.transpositionTable.incrementAge();
 	    NNMinMaxNode.startTimer(MAX_TIME_MS);
 
@@ -166,13 +159,7 @@ public final class NoNameBot extends CompetitorBot
 	{
 	    System.out.println("=== FINAL STATISTICS ===");
 	    System.out.println("Depth reached: " + lastDepthReached);
-	    System.out.println("Nodes visited: " + NNMinMaxNode.nodeCount);
 	    System.out.println("Transposition Table size: " + NNMinMaxNode.transpositionTable.fillRatio() * 100.0 + "%");
 	    System.out.println(NNMinMaxNode.transpositionTable.hitRate() * 100.0 + "% hits");
-	}
-	
-	public int getLastDepthReached()
-	{
-	    return this.lastDepthReached;
 	}
 }

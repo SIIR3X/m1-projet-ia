@@ -7,12 +7,10 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 6/7 : Proximité de la victoire
+ * Heuristique 5/6 : Proximté de la victoire
  */
 public final class EndgameProximityHeuristic implements PositionHeuristic
 {
-	public static final String ID = "endgame_proximity";
-	
 	private static final int ENDGAME_THRESHOLD = WINNING_SCORE - 5;
 	private static final double URGENCY_MULTIPLIER = 3.0;
 	
@@ -37,11 +35,5 @@ public final class EndgameProximityHeuristic implements PositionHeuristic
 		}
 		
 		return value;
-	}
-	
-	@Override
-	public String getId()
-	{
-		return ID;
 	}
 }
