@@ -15,17 +15,12 @@ import awele.bot.competitor.noname.ordering.heuristics.TTMoveHeuristic;
  */
 public final class MoveEvaluator
 {
-	// ===== Poids ======
-	
 	private static final int W_TT = 1_000_000; // Priorité absolue au coup du TT (0/1)
 	private static final int W_STARVATION = 100_000; // (-1/0/1)
 	private static final int W_CAPTURE = 100; // (NbGraines capturées)
 	private static final int W_CATEGORY = 10; // (score cat)
 	private static final int KILLER_BONUS_1 = 50_000; // Bonus pour le coup killer 1
 	private static final int KILLER_BONUS_2 = 25_000; // Bonus pour le coup killer 2
-	
-	public static boolean ENABLE_CATEGORY_ORDERING = true;
-	public static boolean ENABLE_KILLERS = true;
 	
 	/**
 	 * Liste des heuristiques utilisées pour évaluer les coups
@@ -92,19 +87,14 @@ public final class MoveEvaluator
 				
 				int score = evaluateMove(board, player, hole);
 				
-				if (ENABLE_CATEGORY_ORDERING)
-				{
-					final int cat = CategoryMoveOrdering.category(board, player, hole);
-					score += CategoryMoveOrdering.score(cat) * W_CATEGORY;
-				}
-				
-				if (ENABLE_KILLERS)
-				{
-					if (hole == k0)
-						score += KILLER_BONUS_1;
-					else if (hole == k1)
-						score += KILLER_BONUS_2;
-				}
+				final int cat = CategoryMoveOrdering.category(board, player, hole);
+				score += CategoryMoveOrdering.score(cat) * W_CATEGORY;
+			
+				if (hole == k0)
+					score += KILLER_BONUS_1;
+				else if (hole == k1)
+					score += KILLER_BONUS_2;
+
 				
 				scores[index] = score;
 				index++;

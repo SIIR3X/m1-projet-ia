@@ -43,8 +43,8 @@ public final class CategoryMoveOrdering
 		
 		final int seedsArrive = clampSeeds(board.getSeeds(destPlayer, destHole));
 		
-		// formule Mathis Saillot
-		// A modifier
+		// Formule inspirée de Mathis Saillot
+		// cf son rapport
 		final int cat = startHole + NB_HOLES * seedsStart + NB_HOLES * MAX_SEEDS_PLUS_ONE * seedsArrive;
 		
 		return (cat < 0) ? 0 : (cat >= CATEGORY_COUNT) ? (CATEGORY_COUNT - 1) : cat;

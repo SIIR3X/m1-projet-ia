@@ -23,11 +23,7 @@ import awele.core.Board;
  */
 public final class BitBoardConverter
 {
-	// Empêche l'instanciation
-	private BitBoardConverter()
-	{
-		throw new AssertionError("Classe utilitaire ne peut être instanciée");
-	}
+	private BitBoardConverter(){}
 	
 	/**
 	 * Convertit un Board en BitBoard

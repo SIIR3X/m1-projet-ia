@@ -138,13 +138,35 @@ public final class TranspositionTable
         evalQ[idx] = packEval16(evaluation);
     }
 
-    public int size() { return size; }
-    public int used() { return used; }
-    public double fillRatio() { return (double) used / size; }
+    public int size()
+    {
+    	return size;
+    }
+    
+    public int used()
+    {
+    	return used;
+    }
+    
+    public double fillRatio()
+    {
+    	return (double) used / size;
+    }
 
-    public long probes() { return probeCount; }
-    public long hits() { return hitCount; }
-    public long stores() { return storeCount; }
+    public long probes()
+    {
+    	return probeCount;
+    }
+    
+    public long hits()
+    {
+    	return hitCount;
+    }
+    
+    public long stores()
+    {
+    	return storeCount;
+    }
 
     public double hitRate()
     {

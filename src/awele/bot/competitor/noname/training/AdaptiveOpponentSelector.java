@@ -82,7 +82,7 @@ public final class AdaptiveOpponentSelector
 		1.0, // HOARDER
 		1.0, // STARVER
 		1.0, // SELF
-		2.0, // BOSS
+		1.5, // BOSS
 	};
 	
 	// ===== Probabilités initiales =====
@@ -114,7 +114,7 @@ public final class AdaptiveOpponentSelector
 	/**
 	 * Profondeur min du boss
 	 */
-	private static final int BOSS_MIN_DEPTH = 8;
+	private static final int BOSS_MIN_DEPTH = 7;
 	
 	// ===== Variables internes =====
 	

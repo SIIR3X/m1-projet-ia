@@ -5,12 +5,10 @@ import awele.bot.competitor.noname.evaluation.PositionHeuristic;
 
 /**
  * @author Lucas Fagioli
- * Heuristique 3/7 : Valeur de capture nette
+ * Heuristique 3/6 : Valeur de capture nette
  */
 public final class CaptureValueHeuristic implements PositionHeuristic
 {
-	public static final String ID = "capture_potential";
-	
 	@Override
 	public double evaluate(BitBoard board, int player)
 	{
@@ -20,12 +18,6 @@ public final class CaptureValueHeuristic implements PositionHeuristic
 		int opponentCaptureValue = calculateCaptureValue(board, opponent);
 		
 		return playerCaptureValue - opponentCaptureValue;
-	}
-	
-	@Override
-	public String getId()
-	{
-		return ID;
 	}
 	
 	/**
