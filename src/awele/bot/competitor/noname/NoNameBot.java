@@ -7,20 +7,21 @@ import awele.bot.competitor.noname.evaluation.PositionEvaluator;
 import awele.bot.competitor.noname.ordering.PositionHistory;
 import awele.bot.competitor.noname.search.minmax.NNMaxNode;
 import awele.bot.competitor.noname.search.minmax.NNMinMaxNode;
-import awele.bot.competitor.noname.test.TrainingLogger;
 import awele.bot.competitor.noname.training.BotEvaluator;
 import awele.bot.competitor.noname.training.cmaes.CMAES;
 import awele.bot.competitor.noname.training.cmaes.CMAESConfig;
 import awele.core.Board;
 import awele.core.InvalidBotException;
 
+/**
+ * @author Lucas Fagioli
+ */
 public final class NoNameBot extends CompetitorBot
 {
-	// ===== Constantes =====
-	
 	/**
 	 * Temps maximum autorisé pour la recherche de décision
 	 * Volontairement moins que 100ms
+	 * Perte de 2% du temps
 	 */
 	private static final long MAX_TIME_MS = 98;
 	
@@ -34,31 +35,25 @@ public final class NoNameBot extends CompetitorBot
 	 */
 	private static final int MIN_DEPTH = 0;
 	
-	private int lastDepthReached;
-	
 	/**
 	 * Temps pour apprendre les poids
 	 */
-	private static final long LEARN_WEIGHTS_MS = 45000L * 60L * 1_000L;
+	private static final long LEARN_WEIGHTS_MS = 30L * 60L * 1_000L;
 	
 	/**
 	 * Temps pour apprendre les catégories
 	 */
-	private static final long LEARN_CATEGORIES_MS = 10L * 60L * 1_000L;
+	private static final long LEARN_CATEGORIES_MS = 25L * 60L * 1_000L;
 	
 	public NoNameBot() throws InvalidBotException
 	{
 		this.setBotName("NoName");
 		this.addAuthor("Lucas Fagioli");
-		
-		this.lastDepthReached = 0;
 	}
 
 	@Override
 	public void initialize()
 	{
-		this.lastDepthReached = 0;
-		
 		// Clear de la TT
 		// même si on préfèrerai la garder pour avoir un avantage en début de game
 		NNMinMaxNode.transpositionTable.clear();
@@ -70,31 +65,32 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void learn()
 	{
-	    try (TrainingLogger logger = new TrainingLogger())
-	    {
-	        final BotEvaluator botEvaluator = new BotEvaluator();
-	        
-	        // Bornes des poids
-	        double wMin = 0.0;
-	        double wMax = 15.0;
-	        
-	        // Phase 1 : poids
-	        CMAESConfig cfg = new CMAESConfig(
-	        		PositionEvaluator.getDefaultWeights(),
-	        		1.0, // sigma
-	        		10_000_000L, // inutile pour moi, dans l'algo de base mais ici on s'arrête au temps
-	        		LEARN_WEIGHTS_MS,
-	        		32, // nbGames
-	        		6, // depth
-	        		wMin, wMax); // bornes
-	        
-	        CMAES cmaes = new CMAES(cfg, botEvaluator);
-	        cmaes.optimize(NNMinMaxNode.positionEvaluator, logger, "CMAES");
-	        
-	        // Phase 2 : catégories
-	        final PositionEvaluator evaluator = NNMinMaxNode.positionEvaluator;
-	        botEvaluator.trainCategoriesSelfPlay(evaluator, 750, 7, LEARN_CATEGORIES_MS);
-	    }
+        final BotEvaluator botEvaluator = new BotEvaluator();
+        
+        // Bornes des poids
+        double wMin = 0.0;
+        double wMax = 15.0;
+        
+        // Phase 1 : poids
+        // Durée 30min
+        CMAESConfig cfg = new CMAESConfig(
+        		PositionEvaluator.getDefaultWeights(),
+        		0.8, // sigma = variation
+        		10_000_000L, // inutile pour moi, dans l'algo de base mais ici on s'arrête au temps
+        		LEARN_WEIGHTS_MS,
+        		36, // nbGames
+        		6, // depth
+        		wMin, wMax); // bornes
+        
+        CMAES cmaes = new CMAES(cfg, botEvaluator);
+        cmaes.optimize(NNMinMaxNode.positionEvaluator, "CMAES");
+        
+        // Phase 2 : catégories
+        // Durée : 25min
+        final PositionEvaluator evaluator = NNMinMaxNode.positionEvaluator;
+        botEvaluator.trainCategoriesSelfPlay(evaluator, 7, LEARN_CATEGORIES_MS);
+        
+        // Marge de sécurité de 5min
 	}
 
 	@Override
@@ -105,7 +101,6 @@ public final class NoNameBot extends CompetitorBot
 	    // Premier coup : joue à droite
 	    if (bitBoard.isFirstMove())
 	    {
-	        this.lastDepthReached = 0;
 	        double[] opening = new double[6];
 	        opening[5] = 1.0;
 	        return opening;
@@ -118,7 +113,6 @@ public final class NoNameBot extends CompetitorBot
 	    PositionHistory.clear();
 
 	    double[] bestDecision = null;
-	    int depthReached = 0;
 
 	    // Iterative Deepening : profondeur croissante jusqu'à timeout
 	    for (int depth = 1; depth <= MAX_DEPTH; depth++)
@@ -134,13 +128,11 @@ public final class NoNameBot extends CompetitorBot
 	            break;
 
 	        bestDecision = rootNode.getDecision();
-	        depthReached = depth;
 
 	        if (depth >= MAX_DEPTH || NNMinMaxNode.isTimeExpired())
 	            break;
 	    }
 
-	    this.lastDepthReached = depthReached;
 	    NNMinMaxNode.resetTimer();
 
 	    // Fallback si aucune décision trouvée
@@ -148,7 +140,6 @@ public final class NoNameBot extends CompetitorBot
 	    {
 	        NNMinMaxNode.initialize(bitBoard, 1);
 	        bestDecision = new NNMaxNode(bitBoard).getDecision();
-	        this.lastDepthReached = 1;
 	    }
 
 	    return bestDecision;
@@ -157,9 +148,6 @@ public final class NoNameBot extends CompetitorBot
 	@Override
 	public void finish()
 	{
-	    System.out.println("=== FINAL STATISTICS ===");
-	    System.out.println("Depth reached: " + lastDepthReached);
-	    System.out.println("Transposition Table size: " + NNMinMaxNode.transpositionTable.fillRatio() * 100.0 + "%");
-	    System.out.println(NNMinMaxNode.transpositionTable.hitRate() * 100.0 + "% hits");
+
 	}
 }

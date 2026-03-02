@@ -4,10 +4,13 @@ import java.util.Arrays;
 import java.util.Random;
 
 import awele.bot.competitor.noname.evaluation.PositionEvaluator;
-import awele.bot.competitor.noname.test.TrainingLogger;
 import awele.bot.competitor.noname.training.AdaptiveOpponentSelector.OpponentProfile;
 import awele.bot.competitor.noname.training.BotEvaluator;
 
+/**
+ * @author Lucas Fagioli
+ * CMA-ES
+ */
 public final class CMAES
 {
 	private final CMAESConfig config;
@@ -52,14 +55,13 @@ public final class CMAES
 	
 	public void optimize(
 		    PositionEvaluator evaluator,
-		    TrainingLogger logger,
 		    String phaseName)
 		{
 		    final int N = config.xmean.length;
 
 		    // Taille de la population
 		    //final int lambda = 	4 + (int)(3 * Math.log(N));
-		     final int lambda = 16;
+		     final int lambda = 14;
 		     
 		    // Nombre de parents sélectionnés
 		    final int mu = lambda / 2;
@@ -153,7 +155,7 @@ public final class CMAES
 		            counteval++;
 		            evaluatedThisGen = k + 1;
 
-		            // ---- Progress display (every ~250ms) ----
+		            // SUPPR
 		            final long now = System.currentTimeMillis();
 		            if (now - lastProgressPrint >= 250 || evaluatedThisGen == lambda || counteval == config.stopEval)
 		            {
@@ -192,6 +194,7 @@ public final class CMAES
 		                if (evaluatedThisGen == lambda || counteval == config.stopEval)
 		                    System.out.println();
 		            }
+		            // SUPPR
 
 		            if (counteval >= config.stopEval)
 		                break;
@@ -288,63 +291,19 @@ public final class CMAES
 		            if (d < dMin) dMin = d;
 		            if (d > dMax) dMax = d;
 		        }
-		        
-		        
-		        if (logger != null)
-		        {
-		            double[] std = new double[N];
 
-		            for (int i = 0; i < N; i++)
-		                std[i] = sigma * D[i];
-
-		            logger.logCmaesDistribution(
-		                generationCount,
-		                phaseName,
-		                System.currentTimeMillis() - startTime,
-		                sigma,
-		                dMax / Math.max(dMin, 1e-20),
-		                xmean,
-		                std
-		            );
-		        }
-		        
 		        if (dMax / dMin > 1e7)
 		            break;
 
 		        final double genBestFitness = arfitness[arindex[0]];
-		        final double genAvgFitness = averageFitness(arfitness);
-
+	
 		        if (genBestFitness > bestFitness)
 		        {
 		            bestFitness = genBestFitness;
 		            bestWeights = xmean.clone();
 		            botEvaluator.updateBestWeights(bestWeights);
-
-		            if (logger != null)
-		            {
-		                logger.logBest(
-		                    generationCount, phaseName,
-		                    System.currentTimeMillis() - startTime,
-		                    bestFitness, bestWeights
-		                );
-		            }
 		        }
-
-		        if (logger != null)
-		        {
-		            logger.logIteration(
-		                generationCount, phaseName,
-		                System.currentTimeMillis() - startTime,
-		                sigma,
-		                dMax / Math.max(dMin, 1e-20),
-		                genBestFitness,
-		                genAvgFitness,
-		                bestFitness,
-		                bestFitness,
-		                xmean
-		            );
-		        }
-
+		        
 		        generationCount++;
 		    }
 
@@ -687,23 +646,6 @@ public final class CMAES
 		}
 		
 		return result;
-	}
-	
-	/**
-	 * Calcule la fitness moyenne d'une population
-	 * @param fitness Tableau de fitness pour chaque individu
-	 * @return Fitness moyenne de la population
-	 */
-	private static double averageFitness(double[] fitness)
-	{
-		double sum = 0.0;
-		
-		for (double f : fitness)
-		{
-			sum += f;
-		}
-		
-		return sum / fitness.length;
 	}
 	
 	/**
