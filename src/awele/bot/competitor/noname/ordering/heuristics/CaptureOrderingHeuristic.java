@@ -4,7 +4,7 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.ordering.MoveHeuristic;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  * Heuristique de capture
  */
 public final class CaptureOrderingHeuristic implements MoveHeuristic

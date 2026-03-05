@@ -3,7 +3,7 @@ package awele.bot.competitor.noname.search.transposition;
 import java.util.Arrays;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  */
 public final class TranspositionTable
 {
@@ -37,7 +37,7 @@ public final class TranspositionTable
     private int generation;
     private int used;
 
-    public TranspositionTable(int pow2, boolean unused)
+    public TranspositionTable(int pow2)
     {
         if (pow2 < 1 || pow2 > 30)
             throw new IllegalArgumentException("pow2 doit être entre 1 et 30");

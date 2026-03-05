@@ -60,18 +60,8 @@ public abstract class NNMinMaxNode
 	/**
 	 * Table de transposition partagée pour stocker les évaluations des positions
 	 * déjà explorées
-	 *
-	 * Nouveau fonctionnement :
-	 * - gameTable : utilisée pendant les parties (reset entre les games)
-	 * - trainingTable : remplie pendant l'entraînement (persistante sur learn)
 	 */
-	public static TranspositionTable transpositionTable = new TranspositionTable(21, false);
-
-	/**
-	 * Indique si la recherche courante utilise la table d'entraînement
-	 * (sinon, utilise la table de game).
-	 */
-	private static volatile boolean trainingMode = false;
+	public static TranspositionTable transpositionTable = new TranspositionTable(21);
 
 	/**
 	 * Évaluateur de position partagé pour calculer l'évaluation des positions de jeu
@@ -113,8 +103,6 @@ public abstract class NNMinMaxNode
 	 * Longueur de la PV locale
 	 */
 	private int localPVLength;
-
-	// ===== Constructeur =====
 
 	/**
 	 * Constructeur
@@ -369,16 +357,6 @@ public abstract class NNMinMaxNode
 	}
 
 	// ===== Méthodes statiques =====
-
-	public static void setTrainingMode(boolean enable)
-	{
-		trainingMode = enable;
-	}
-
-	public static boolean isTrainingMode()
-	{
-		return trainingMode;
-	}
 
 	public static void initialize(BitBoard board, int depth)
 	{

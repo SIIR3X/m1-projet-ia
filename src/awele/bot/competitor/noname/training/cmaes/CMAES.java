@@ -113,11 +113,6 @@ public final class CMAES
 
 		    final long startTime = System.currentTimeMillis();
 		    final long endTime = startTime + config.timeBudgetMs;
-		    
-		    // --- Progress / ETA (throttled) ---
-		    long lastProgressPrint = 0L;
-		    final long progressT0 = startTime;
-		    final long progressEval0 = 0L;
 
 		    while (counteval < config.stopEval)
 		    {
@@ -154,47 +149,6 @@ public final class CMAES
 
 		            counteval++;
 		            evaluatedThisGen = k + 1;
-
-		            // SUPPR
-		            final long now = System.currentTimeMillis();
-		            if (now - lastProgressPrint >= 250 || evaluatedThisGen == lambda || counteval == config.stopEval)
-		            {
-		                lastProgressPrint = now;
-
-		                final double genPct = 100.0 * evaluatedThisGen / lambda;
-		                final double totalPct = 100.0 * counteval / Math.max(1L, config.stopEval);
-
-		                long etaSec = -1;
-		                final long dt = now - progressT0;
-		                final long evalDone = counteval - progressEval0;
-		                if (dt > 0 && evalDone > 0)
-		                {
-		                    final double evalPerSec = evalDone / (dt / 1000.0);
-		                    final long remaining = Math.max(0L, config.stopEval - counteval);
-		                    etaSec = (long)Math.ceil(remaining / Math.max(1e-9, evalPerSec));
-
-		                    System.out.printf(
-		                        "\r[%s] gen=%d %.0f%% (%d/%d) total=%.0f%% (%d/%d) | %.2f eval/s | ETA ~ %ds",
-		                        phaseName, generationCount,
-		                        genPct, evaluatedThisGen, lambda,
-		                        totalPct, counteval, config.stopEval,
-		                        evalPerSec, etaSec
-		                    );
-		                }
-		                else
-		                {
-		                    System.out.printf(
-		                        "\r[%s] gen=%d %.0f%% (%d/%d) total=%.0f%% (%d/%d)",
-		                        phaseName, generationCount,
-		                        genPct, evaluatedThisGen, lambda,
-		                        totalPct, counteval, config.stopEval
-		                    );
-		                }
-		                System.out.flush();
-		                if (evaluatedThisGen == lambda || counteval == config.stopEval)
-		                    System.out.println();
-		            }
-		            // SUPPR
 
 		            if (counteval >= config.stopEval)
 		                break;

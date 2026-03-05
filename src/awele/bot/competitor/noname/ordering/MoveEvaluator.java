@@ -9,7 +9,7 @@ import awele.bot.competitor.noname.ordering.heuristics.CaptureOrderingHeuristic;
 import awele.bot.competitor.noname.ordering.heuristics.TTMoveHeuristic;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  * Évaluateur de coups qui combine plusieurs heuristiques pour donner une évaluation globale de la qualité d'un coup
  * Calcule ensuite un score pondéré pour chaque coup
  */
