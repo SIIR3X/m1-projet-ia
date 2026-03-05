@@ -6,7 +6,7 @@ import awele.bot.competitor.noname.core.bitboard.BitBoard;
 import awele.bot.competitor.noname.ordering.MoveHeuristic;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  * Heuristique anti-starvation
  * Détection si l'adversaire est affamé et vérifie si le coup le nourrit
  */

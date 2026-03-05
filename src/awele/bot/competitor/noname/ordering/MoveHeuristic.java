@@ -3,7 +3,7 @@ package awele.bot.competitor.noname.ordering;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  * Interface pour les heuristiques d'évaluation de coups
  */
 public interface MoveHeuristic

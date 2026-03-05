@@ -5,7 +5,7 @@ import static awele.bot.competitor.noname.core.bitboard.BitConstants.NB_HOLES;
 import awele.bot.competitor.noname.core.bitboard.BitBoard;
 
 /**
- * @autor Lucas Fagioli
+ * @author Lucas Fagioli
  */
 public final class CategoryMoveOrdering
 {

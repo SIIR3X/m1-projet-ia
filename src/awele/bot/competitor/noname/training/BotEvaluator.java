@@ -73,8 +73,8 @@ public final class BotEvaluator
 	{
 		this.selector = new AdaptiveOpponentSelector();
 
-		this.candidateTT = new TranspositionTable(21, false);
-		this.opponentTT  = new TranspositionTable(21, false);
+		this.candidateTT = new TranspositionTable(21);
+		this.opponentTT  = new TranspositionTable(21);
 
 		this.startBoard = new BitBoard();
 	}
@@ -180,8 +180,6 @@ public final class BotEvaluator
 				break;
 
 			final boolean candidateFirst = (game % 2 == 0);
-			
-			System.out.println("Self-play game " + (game + 1) + " / " + "elapsed: " + (elapsed / 1000) + "s / " + (maxTimeMs / 1000) + "s");
 			
 			playSingleGame(
 				evaluator,

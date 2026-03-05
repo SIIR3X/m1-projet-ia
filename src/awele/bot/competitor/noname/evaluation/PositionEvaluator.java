@@ -167,6 +167,8 @@ public final class PositionEvaluator
 	 * - Famine safety : important tout au long de la partie, un peu plus en début
 	 * - Proximity to win : pas important en début de partie, très important en fin de partie
 	 * - Extra moves : plus important en début de partie, moins en fin
+	 * 
+	 * Probablement trop faibles pour assurer une place convenable
 	 */
 	public static double[] getDefaultWeights()
 	{
